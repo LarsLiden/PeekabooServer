@@ -4,11 +4,11 @@ import * as express from "express";
 class App {
 
   constructor() {
-    this.app = express();
+    this.express = express();
   }
 
-  public app: express.Application;
+  public express: express.Application;
 
 }
 
-export default new App().app;
+export default new App().express;

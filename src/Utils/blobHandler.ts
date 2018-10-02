@@ -1,30 +1,112 @@
 import * as azure from 'azure-storage'
+import * as models from '../Models/person'
+import { promisify } from 'util'
 
-export class BlobHandler {
-    private static blobService: azure.BlobService
+//const imageContainer = 'faces'
+const personContainer = 'data'
 
-    public static init() {
+interface BlobResult {
+    name: string;
+    containerName: string;
+    metadata?: { [key: string]: string; };
+}
+
+export class BlobService {
+    private static _instance: BlobService
+    private _blobService: azure.BlobService
+
+    private constructor() {
         let connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING
         if (!connectionString) {
             throw new Error('No Blob Connection String')
         }
-        BlobHandler.blobService = azure.createBlobService(
-            connectionString
-        )
+        this._blobService = azure.createBlobService(connectionString)
     }
 
-    public static uploadImage(containerName: string, blobName: string, localFileName: string) {
-     /*   BlobHandler.blobService.createBlockBlobFromLocalFile(containerName, blobName, localFileName, 
+    public static Instance(): BlobService {
+        if (!this._instance) {
+            this._instance = new BlobService()
+        }
+        return this._instance
+    }
+    
+/*
+    private static aggregateBlobs(err, result, cb) {
+        if (err) {
+            cb(er);
+        } else {
+            blobs = blobs.concat(result.entries);
+            if (result.continuationToken !== null) {
+                blobService.listBlobsSegmented(
+                    containerName,
+                    result.continuationToken,
+                    aggregateBlobs);
+            } else {
+                cb(null, blobs);
+            }
+        }
+    }*/
+    
+
+    public async getPeopleAsync(): Promise<models.Person[]> {
+        let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmented).bind(this._blobService)
+        let peopleBlobs: BlobResult[] = []
+        try {
+            peopleBlobs = (await listBlobsSegmentedAsync(personContainer, null as any)).entries
+        }
+        catch (err) {
+            console.log(JSON.stringify(err))
+        }
+
+        let people: models.Person[] = []
+        for (let blobInfo of peopleBlobs) {
+            let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
+            if (blobFile) {
+                people.push(JSON.parse(blobFile) as models.Person)
+            }
+        }
+        return people
+    }
+
+  
+    public async getBlobAsTextAsync(containerName: string, blobName: string) {
+        const getBlobToTextAsync = promisify(this._blobService.getBlobToText).bind(this._blobService)
+
+        try {
+            return await getBlobToTextAsync(containerName, blobName)
+        }
+        catch (err) {
+            console.log(JSON.stringify(err))
+        }
+    }
+
+    public uploadText(containerName: string, blobName: string, text: string) {
+        console.log(`${containerName}: ${blobName}`)
+
+        this._blobService.createBlockBlobFromText(containerName, blobName, text, 
+            (error, result, response) => {
+                if (!error) {
+                    console.log(`${containerName}: ${blobName}`)
+                }
+                else {
+                    console.log(JSON.stringify(error))
+                }
+              })
+    }
+
+    public uploadFile(containerName: string, blobName: string, localFileName: string) {
+        console.log(`${containerName}: ${blobName}`)
+
+        this._blobService.createBlockBlobFromLocalFile(containerName, blobName, localFileName, 
         (error, result, response) => {
             if (!error) {
-                console.log(JSON.stringify(result))
-                console.log(JSON.stringify(response))
+                console.log(`${containerName}: ${blobName}`)
             }
             else {
                 console.log(JSON.stringify(error))
             }
-          });*/
-
+          })
+/*
           BlobHandler.blobService.listBlobsSegmentedWithPrefix("faces","S/", undefined as any, (error, result, response) => {
             if (!error) {
                 console.log(JSON.stringify(result))
@@ -33,6 +115,8 @@ export class BlobHandler {
             else {
                 console.log(JSON.stringify(error))
             }
-          });
+          });*/
     }
 }
+
+export default BlobService.Instance()
