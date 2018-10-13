@@ -1,7 +1,7 @@
 import * as express from 'express';
-//import util from "./Utils/util";
+import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
-import { QuizPerson } from './Models/quizPerson'
+import { QuizPerson, Filter } from './Models/models'
 //import * as path from 'path'
 //import BlobService from './Utils/blobHandler'
 import DataProvider from './dataProvider'
@@ -26,21 +26,58 @@ var port = process.env.PORT || 8080;        // set our port
 var router = express.Router();              // get an instance of the express Router
 router.use(cors())
 
-// test route to make sure everything is working (accessed at GET http://localhost:8080/api)
 router.get('/quiz', function(req, res) {
   try {
 
-    const qPeople = DataProvider.people.map(p => {
+    const qPeople = DataProvider.people
+      .filter(p => p._photoFNs.length > 0)
+      .map(p => {
         return {
           fullName: p.FullName,
           blobNames: p._photoFNs
         } as QuizPerson
     })
-    //const key = getMemoryKey(req)
-    //const query = url.parse(req.url).query || ''
-    //const apps = await client.GetApps(query)
 
     res.send(qPeople)
+  } catch (error) {
+      //HandleError(res, error)
+  }
+});
+
+router.get('/tags', function(req, res) {
+  try {
+    const tags = DataProvider.tags
+    res.send(tags)
+  } catch (error) {
+      //HandleError(res, error)
+  }
+});
+
+router.post('/tags', function(req, res) {
+  try {
+    const filter: Filter = req.body.filter
+    const tags = DataProvider.filteredTags(filter)
+    res.send(tags)
+  } catch (error) {
+      //HandleError(res, error)
+  }
+});
+
+router.post('/quizset', function(req, res) {
+  try {
+    const filter: Filter = req.body.filter
+
+    const quizSet = DataProvider.quizSet(filter)
+    res.send(quizSet)
+  } catch (error) {
+      //HandleError(res, error)
+  }
+});
+
+router.post('/import', function(req, res) {
+  try {
+    util.UploadLocalFiles()
+    res.send(200)
   } catch (error) {
       //HandleError(res, error)
   }

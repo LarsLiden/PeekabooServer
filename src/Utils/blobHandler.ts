@@ -62,7 +62,7 @@ export class BlobService {
         for (let blobInfo of peopleBlobs) {
             let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
             if (blobFile) {
-                people.push(JSON.parse(blobFile) as models.Person)
+                people.push(new models.Person(JSON.parse(blobFile)))
             }
         }
         return people
