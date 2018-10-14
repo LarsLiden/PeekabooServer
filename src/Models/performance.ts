@@ -1,16 +1,16 @@
 import { MAX_TIME } from './const'
 
 export class Performance {
-    public BestTime = MAX_TIME
-    public AvgTime = MAX_TIME
-    public WorstTime = 0
-    public NumPresentations = 0
-    public Frequency: number = 0
-    public Rank = 0
-    public LastTested = 0 
-    public Familiarity = 0
-    public FrequencyOffset = 0
-    public FrequencyOffsetEnd = 0
+    public bestTime = MAX_TIME
+    public avgTime = MAX_TIME
+    public worstTime = 0
+    public numPresentations = 0
+    public frequency: number = 0
+    public rank = 0
+    public lastTested = 0 
+    public familiarity = 0
+    public frequencyOffsetStart = 0
+    public frequencyOffsetEnd = 0
 
     public constructor(init?: Partial<Performance>) {
         Object.assign(this, init)
@@ -21,21 +21,21 @@ export class Performance {
     public ageBias(): number
     {
         // LARS recheck this math
-        let millisecondsPassed = Date.now() - Date.now() - 10// TEMP -this.LastTested
+        let millisecondsPassed = Date.now() - this.lastTested
         let daysPassed = (millisecondsPassed / (1000*60*60*24));
         return daysPassed * (MAX_TIME / 30);
     }
 
     public Reset()
 		{
-		    this.BestTime	= 0
-			this.WorstTime	= 0
+		    this.bestTime	= 0
+			this.worstTime	= 0
 
             // Set ave to the worst
             // time to bias towards new people
-			this.AvgTime	= MAX_TIME
-			this.NumPresentations = 0
-            this.LastTested = 0
+			this.avgTime	= MAX_TIME
+			this.numPresentations = 0
+            this.lastTested = 0
         }
         
     public AddResult(elapsedTime: number)
@@ -52,18 +52,18 @@ export class Performance {
                 //larselapsedTime = MAX_TIME
             }
 
-            this.LastTested = Date.now()
+            this.lastTested = Date.now()
 
 			// Is it the first real presentation, then average it with the
             // worst possible time.  This assures a bias towards new people
-			if (this.NumPresentations == 0) 
+			if (this.numPresentations == 0) 
 			{
-				this.BestTime	= elapsedTime
-				this.WorstTime	= elapsedTime
+				this.bestTime	= elapsedTime
+				this.worstTime	= elapsedTime
 
                 // Calculate new average
-                this.AvgTime = (MAX_TIME + elapsedTime) / 2
-				this.NumPresentations++
+                this.avgTime = (MAX_TIME + elapsedTime) / 2
+				this.numPresentations++
 				return
 			}
 
@@ -74,30 +74,30 @@ export class Performance {
 			}
 
 			// Is it the new min?
-			if (elapsedTime < this.BestTime) 
+			if (elapsedTime < this.bestTime) 
 			{
-				this.BestTime = elapsedTime
+				this.bestTime = elapsedTime
 			}
 
 			// Is it the new max?
-			if (elapsedTime > this.WorstTime)
+			if (elapsedTime > this.worstTime)
 			{
-				this.WorstTime = elapsedTime
+				this.worstTime = elapsedTime
 			}
 
             //----------------------------------------
 			// Calculate new average of last 20 trials
             //----------------------------------------
-            if (this.NumPresentations < 20)
+            if (this.numPresentations < 20)
             {
-                this.AvgTime = ((this.NumPresentations * this.AvgTime) + elapsedTime) / (this.NumPresentations + 1)
+                this.avgTime = ((this.numPresentations * this.avgTime) + elapsedTime) / (this.numPresentations + 1)
             }
             else
             {
-                this.AvgTime = ((19 * this.AvgTime) + elapsedTime) / 20
+                this.avgTime = ((19 * this.avgTime) + elapsedTime) / 20
             }
 			// Increase presentation count
-			this.NumPresentations++
+			this.numPresentations++
 
             // TODO
 			// Save

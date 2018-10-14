@@ -96,14 +96,14 @@ export class BlobService {
 
     public uploadFile(containerName: string, blobName: string, localFileName: string) {
         console.log(`${containerName}: ${blobName}`)
-
+return
         this._blobService.createBlockBlobFromLocalFile(containerName, blobName, localFileName, 
         (error, result, response) => {
             if (!error) {
                 console.log(`${containerName}: ${blobName}`)
             }
             else {
-                console.log(JSON.stringify(error))
+                console.log(`${localFileName} ${JSON.stringify(error)}`)
             }
           })
 /*

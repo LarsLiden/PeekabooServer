@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { Person } from '../Models/person'
+import { Performance } from '../Models/performance'
 import BlobService from './blobHandler'
 
 const dataPath = path.join(process.cwd(), './data')
@@ -33,7 +34,80 @@ class Util {
 
     public getPersonFromFile(fileName: string): Person {
         let fileContent = fs.readFileSync(fileName, 'utf-8')
-        return JSON.parse(fileContent) as Person
+        let rawPerson = JSON.parse(fileContent) 
+
+        let photoPerformance = {
+            bestTime: rawPerson._photoPerformance.BestTime,
+            avgTime : rawPerson._photoPerformance.AvgTime,
+            worstTime: rawPerson._photoPerformance.WorstTime,
+            numPresentations: rawPerson._photoPerformance.NumPresentations,
+            frequency: rawPerson._photoPerformance.Frequency,
+            rank: rawPerson._photoPerformance.Rank,
+            lastTested: rawPerson._photoPerformance.lastTested,
+            familiarity: rawPerson._photoPerformance.Familiarity,
+            frequencyOffsetStart: rawPerson._photoPerformance.FrequencyOffset,
+            frequencyOffsetEnd: rawPerson._photoPerformance.FrequencyOffsetEnd
+        } as Performance
+
+        let namePerformance = {
+            bestTime: rawPerson._namePerformance.BestTime,
+            avgTime : rawPerson._namePerformance.AvgTime,
+            worstTime: rawPerson._namePerformance.WorstTime,
+            numPresentations: rawPerson._namePerformance.NumPresentations,
+            frequency: rawPerson._namePerformance.Frequency,
+            rank: rawPerson._namePerformance.Rank,
+            lastTested: rawPerson._namePerformance.lastTested,
+            familiarity: rawPerson._namePerformance.Familiarity,
+            frequencyOffsetStart: rawPerson._namePerformance.FrequencyOffset,
+            frequencyOffsetEnd: rawPerson._namePerformance.FrequencyOffsetEnd
+        } as Performance
+
+        let descPerformance = {
+            bestTime: rawPerson._descPerformance.BestTime,
+            avgTime : rawPerson._descPerformance.AvgTime,
+            worstTime: rawPerson._descPerformance.WorstTime,
+            numPresentations: rawPerson._descPerformance.NumPresentations,
+            frequency: rawPerson._descPerformance.Frequency,
+            rank: rawPerson._descPerformance.Rank,
+            lastTested: rawPerson._descPerformance.lastTested,
+            familiarity: rawPerson._descPerformance.Familiarity,
+            frequencyOffsetStart: rawPerson._descPerformance.FrequencyOffset,
+            frequencyOffsetEnd: rawPerson._descPerformance.FrequencyOffsetEnd
+        } as Performance
+
+        let person = {
+            photoFilenames: rawPerson._photoFNs,
+            tags: rawPerson._tags,
+            keyValues: rawPerson._keyValues,
+            photoPerformance,
+            namePerformance,
+            descPerformance,
+            socialNets: rawPerson._socialNets,
+            events: rawPerson._events,
+            relationships: rawPerson._relationships,
+            nickName: rawPerson.NickName,
+            maidenName: rawPerson.MaidenName,
+            guid: rawPerson.MyGuid,
+            isArchived: rawPerson.IsArchived,
+            firstName: rawPerson.FirstName,
+            lastName: rawPerson.LastName,
+            fullName: rawPerson.FullName,
+            fullMaidenName: rawPerson.FullMaidenName,
+            fullNickName: rawPerson.FullNickName,
+            alternateName: rawPerson.AlternateName,
+            fullAternateName: rawPerson.FullAternateName,
+            longName: rawPerson._LongName,
+            descriptionWithKeyValues: rawPerson._DescriptionWithKeyValues,
+            allKeyValues: rawPerson._AllKeyValues,
+            description: rawPerson._Description,
+            creationDate: rawPerson._CreationDate
+        } as Person
+
+        person.photoPerformance.lastTested = Date.now()
+        person.namePerformance.lastTested = Date.now()
+        person.descPerformance.lastTested = Date.now() 
+
+        return person
     }
 
     private processPersonFile(personFile: string, imageFiles: string[]): void {
@@ -53,19 +127,19 @@ class Util {
         let person = this.getPersonFromFile(personFile)
 
         // Upload photos and update links
-        if (person._photoFNs.length != myImageFiles.length) {
+        if (person.photoFilenames.length != myImageFiles.length) {
             throw new Error("Wrong number of files found")
         }
-        person._photoFNs = []
+        person.photoFilenames = []
         myImageFiles.forEach(localImageFile => {
             let imageBlobPath = localImageFile.substr(cutPos).split(`\\\\`).join(`\\`)
-            person._photoFNs.push(imageBlobPath)
-            let containername = person.IsArchived ? "archive-faces" : "faces"
+            person.photoFilenames.push(imageBlobPath)
+            let containername = person.isArchived ? "archive-faces" : "faces"
             BlobService.uploadFile(containername, imageBlobPath, localImageFile)
         })
 
         // Upload the person file
-        let dataContainerName = person.IsArchived ? "archive-data" : "data"
+        let dataContainerName = person.isArchived ? "archive-data" : "data"
         let dataBlobPath = personFileSplit[0]+'\\'+personFileSplit[1]+'.json'
         BlobService.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }

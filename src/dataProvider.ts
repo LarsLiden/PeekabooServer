@@ -20,7 +20,7 @@ class DataProvider {
 
         let tags: Tag[] = []
         people.map(p => {
-            p._tags.map(t => {
+            p.tags.map(t => {
                 const tag = tags.find(tag => tag.name == t)
                 if(tag) {
                     tag.count++
@@ -60,13 +60,13 @@ class DataProvider {
             let pass = true
             filter.required.forEach(f => 
                 {
-                    if (!p._tags.includes(f)) {
+                    if (!p.tags.includes(f)) {
                         pass = false
                     }
                 })
             filter.blocked.forEach(f => 
                 { 
-                    if (p._tags.includes(f)) {
+                    if (p.tags.includes(f)) {
                         pass = false
                     }
                 })
@@ -91,9 +91,9 @@ class DataProvider {
         quizPeople.forEach(person =>
         {
             // Only for people with at least one presentation
-            if (person.performance.NumPresentations > 0)
+            if (person.performance.numPresentations > 0)
             {
-                const averageTime = person.performance.AvgTime
+                const averageTime = person.performance.avgTime
                 if (averageTime > maxAverageTime) 
                 {
                     maxAverageTime = averageTime
@@ -105,7 +105,7 @@ class DataProvider {
             }
         })
 
-        quizPeople = quizPeople.sort((a, b) => a.performance.AvgTime < b.performance.AvgTime ? -1 : a.performance.AvgTime > b.performance.AvgTime ? 1 : 0)
+        quizPeople = quizPeople.sort((a, b) => a.performance.avgTime < b.performance.avgTime ? -1 : a.performance.avgTime > b.performance.avgTime ? 1 : 0)
 
         //-------------------------------------------
         // Now weight them for appearance in testing
@@ -116,7 +116,7 @@ class DataProvider {
         {
             quizPeople.forEach(person =>
             {
-                person.performance.Frequency = 1
+                person.performance.frequency = 1
             })
         }
         // Caculate the frequency for each
@@ -127,15 +127,15 @@ class DataProvider {
             quizPeople.forEach(person =>
             {
                 // If a new person, use largest time
-                if (person.performance.NumPresentations === 0)
+                if (person.performance.numPresentations === 0)
                 {
-                    person.performance.Frequency = newFrequency
+                    person.performance.frequency = newFrequency
                 }
                     // Otherwise use average time
                 else
                 {
                     // Get average time take to respond
-                    let avgTime = person.performance.AvgTime
+                    let avgTime = person.performance.avgTime
 
                     // Add time based on how long since last tested - max time after 30 days
                     let ageBias = person.performance.ageBias()
@@ -146,7 +146,7 @@ class DataProvider {
                     // Calculate how often this person should appear
                     let frequency = Math.ceil(1 + (BIAS * ((avgTime / minAverageTime) - 1)))
 
-                    person.performance.Frequency = frequency
+                    person.performance.frequency = frequency
                 }
             })
         }
@@ -161,13 +161,13 @@ class DataProvider {
         let logstrings: string[] = []
         quizPeople.forEach(person =>
         {
-            person.performance.FrequencyOffset = frequencyTotal + person.performance.Frequency
-            person.performance.FrequencyOffsetEnd = frequencyTotal + 2 * person.performance.Frequency
+            person.performance.frequencyOffsetStart = frequencyTotal 
+            person.performance.frequencyOffsetEnd = frequencyTotal + person.performance.frequency
          //LARS TODO   person.performance.Rank = .SetRank(SortType, _Library._selectedPeople.IndexOf(person));
-            person.performance.Familiarity = this.calcFamiliarity(minAverageTime, maxAverageTime, person.performance.AvgTime)
-            frequencyTotal += person.performance.Frequency
+            person.performance.familiarity = this.calcFamiliarity(minAverageTime, maxAverageTime, person.performance.avgTime)
+            frequencyTotal += person.performance.frequency
 
-            logstrings.push(`${person.performance.AvgTime+(10*MAX_TIME)} \t${person.performance.Frequency} \t${person.performance.FrequencyOffset} \t${person.performance.FrequencyOffsetEnd} \t${person.fullName}`)
+            logstrings.push(`${person.performance.avgTime+(10*MAX_TIME)} \t${person.performance.frequency} \t${person.performance.frequencyOffsetStart} \t${person.performance.frequencyOffsetEnd} \t${person.fullName}`)
         })
 
         logstrings.sort()

@@ -2,34 +2,34 @@ import { Performance, Relationship, SocialNet } from "./performance";
 import { PerfType, QuizPerson } from './models'
 
 export class Person {
-    _photoFNs: string[] = []
-    _nextPhotoIndex: number = 0
-    _tags: string[] = []    // ENUM LARS
-    _keyValues: any[]  = [] // TODO LARS
-    _photoPerformance: Performance = new Performance()
-    _namePerformance: Performance = new Performance()
-    _descPerformance: Performance = new Performance()
-    _socialNets: SocialNet[] = []
-    _events: [{}]  = [{}] // LARS?? 
-    _relationships: Relationship[] = []
-    NickName: string = ""
-    MaidenName: string= ""
-    MyGuid: string= ""
-    IsArchived: boolean = false
-    FirstName: string = ""
-    LastName: string = ""
-    FullName: string = ""
-    FullMaidenName: string = ""
-    FullNickName: string = ""
-    AlternateName: string = ""
-    FullAternateName: string = ""
-    LongName: string = ""
-    DescriptionWithKeyValues: string = ""
-    AllKeyValues: string = ""
-    Description: string = ""
-    PersonType: number = 0 // LARS enum
-    CreationDate: string = ""
-    DirName: string = ""
+    photoFilenames: string[] = []
+    // Lars no longer used_nextPhotoIndex: number = 0
+    tags: string[] = []   
+    keyValues: any[]  = [] // TODO LARS
+    photoPerformance: Performance = new Performance()
+    namePerformance: Performance = new Performance()
+    descPerformance: Performance = new Performance()
+    socialNets: SocialNet[] = []
+    events: [{}]  = [{}] // LARS?? 
+    relationships: Relationship[] = []
+    nickName: string = ""
+    maidenName: string= ""
+    guid: string= ""
+    isArchived: boolean = false
+    firstName: string = ""
+    lastName: string = ""
+    fullName: string = ""
+    fullMaidenName: string = ""
+    fullNickName: string = ""
+    alternateName: string = ""
+    fullAternateName: string = ""
+    longName: string = ""
+    descriptionWithKeyValues: string = ""
+    allKeyValues: string = ""
+    description: string = ""
+    //personType: number = 0 // LARS not used
+    creationDate: string = ""
+    //dirName: string = "" // LARS not used
 
     public constructor(init?: Partial<Person>) {
         Object.assign(this, init)
@@ -37,8 +37,8 @@ export class Person {
 
     public toQuizPerson(perfType: PerfType): QuizPerson {
         return {
-            fullName: this.FullName,
-            blobNames: this._photoFNs,
+            fullName: this.fullName,
+            blobNames: this.photoFilenames,
             performance: this.performance(perfType)
           } as QuizPerson
     }
@@ -46,11 +46,11 @@ export class Person {
     public performance(perfType: PerfType): Performance {
         switch (perfType) {
             case PerfType.PHOTO: 
-                return new Performance(this._photoPerformance)
+                return new Performance(this.photoPerformance)
             case PerfType.DESC:
-                return new Performance(this._descPerformance)
+                return new Performance(this.descPerformance)
             case PerfType.NAME:
-                return new Performance(this._namePerformance)
+                return new Performance(this.namePerformance)
         }
         throw new Error("invalid perfType")
     }
@@ -62,11 +62,11 @@ export class Person {
         switch (perfType)
         {
             case PerfType.PHOTO:
-                return (this._photoFNs.length > 0);
+                return (this.photoFilenames.length > 0);
             case PerfType.NAME:
-                return (this.FullName != "");
+                return (this.fullName != "");
             case PerfType.DESC:
-                return (this.Description != "");
+                return (this.description != "");
             case PerfType.ALPHA:
                 return true;
         }
