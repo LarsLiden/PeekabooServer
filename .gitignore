@@ -66,3 +66,4 @@ lib/
 .next
 *.js
 *.js
+*.map
