@@ -111,11 +111,3 @@ export interface SocialNet {
     netType: number // LARS enum
 }
 
-export interface Relationship {
-    _type: RelationshipType
-    _guid: string
-}
-
-export interface RelationshipType {
-    _name: string  // LARS enum
-}

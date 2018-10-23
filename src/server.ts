@@ -4,6 +4,7 @@ import * as bodyParser from 'body-parser'
 import { QuizPerson, Filter } from './Models/models'
 import DataProvider from './dataProvider'
 import * as cors from 'cors'
+import * as url from 'url'
 
 var app = express()
 app.use(cors())
@@ -16,11 +17,29 @@ app.listen(port, () => {
 
 // ROUTES FOR OUR API
 // =============================================================================
+function getQuery (req: express.Request): any {
+  return url.parse(req.url, true).query || {}
+}
+
 app.get('/api/test', function(req, res, next) {
   try {
     res.send("Success!")
   } catch (error) {
     res.send(error)
+  }
+});
+
+app.get('/api/person', function(req, res, next) {
+  try {
+    const { guid } = getQuery(req)
+    let person = DataProvider.getPerson(guid)
+    if (!person) { 
+      throw new Error("MISSING PERSON")
+    }
+    const displayPerson = DataProvider.toDisplayPerson(person)
+    res.send(displayPerson)
+  } catch (error) {
+      res.send(error)
   }
 });
 
@@ -70,7 +89,18 @@ app.post('/api/quizset', function(req, res, next) {
   } catch (error) {
     res.send(error)
   }
-});
+})
+
+app.post('/api/libraryset', function(req, res, next) {
+  try {
+    const filter: Filter = req.body.filter
+
+    const librarySet = DataProvider.librarySet(filter)
+    res.send(librarySet)
+  } catch (error) {
+    res.send(error)
+  }
+})
 
 app.post('/api/import', function(req, res, next) {
   try {

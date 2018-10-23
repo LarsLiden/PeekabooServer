@@ -14,9 +14,21 @@ export interface QuizSet {
 }
 
 export interface QuizPerson {
+    guid: string
     blobNames: string[]
     fullName: string
     performance: Performance
+}
+
+export interface LibrarySet {
+    libraryPeople: LibraryPerson[]
+}
+
+export interface LibraryPerson {
+    guid: string
+    blobName: string
+    fullName: string
+    tags: string[]
 }
 
 export interface Tag {
@@ -26,12 +38,12 @@ export interface Tag {
 
 export interface Filter {
     perfType: PerfType
-    required: string[],
+    required: string[]
     blocked: string[]
 }
 
-export enum DisplayType
-{
-    ALL = "ALL",
-    TEST = "TEST"
+export interface Event {
+    date: string
+    description: string
+    location: string
 }

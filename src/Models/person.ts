@@ -1,16 +1,16 @@
-import { Performance, Relationship, SocialNet } from "./performance";
-import { PerfType, QuizPerson } from './models'
+import { Performance, SocialNet } from "./performance";
+import { Relationship } from "./relationship"
+import { PerfType, QuizPerson, LibraryPerson } from './models'
 
 export class Person {
     photoFilenames: string[] = []
-    // Lars no longer used_nextPhotoIndex: number = 0
     tags: string[] = []   
-    keyValues: any[]  = [] // TODO LARS
+    keyValues: { [s: string]: string }  = {} 
     photoPerformance: Performance = new Performance()
     namePerformance: Performance = new Performance()
     descPerformance: Performance = new Performance()
     socialNets: SocialNet[] = []
-    events: [{}]  = [{}] // LARS?? 
+    events: Event[]  = [] 
     relationships: Relationship[] = []
     nickName: string = ""
     maidenName: string= ""
@@ -37,10 +37,20 @@ export class Person {
 
     public toQuizPerson(perfType: PerfType): QuizPerson {
         return {
+            guid: this.guid,
             fullName: this.fullName,
             blobNames: this.photoFilenames,
             performance: this.performance(perfType)
           } as QuizPerson
+    }
+
+    public toLibraryPerson(perfType: PerfType): LibraryPerson {
+        return {
+            guid: this.guid,
+            fullName: this.fullName,
+            blobName: this.photoFilenames[0],
+            tags: this.tags
+          } as LibraryPerson 
     }
 
     public performance(perfType: PerfType): Performance {

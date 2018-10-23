@@ -2,6 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { Person } from '../Models/person'
 import { Performance } from '../Models/performance'
+import { RelationshipType, Relationship } from '../Models/relationship'
 import BlobService from './blobHandler'
 
 const dataPath = path.join(process.cwd(), './data')
@@ -75,16 +76,36 @@ class Util {
             frequencyOffsetEnd: rawPerson._descPerformance.FrequencyOffsetEnd
         } as Performance
 
+        let keyValues: { [s: string]: string } = {}
+        rawPerson._keyValues.forEach((kv: any) => {
+            keyValues[kv.Key] = kv.Value
+        })
+
+        let relationships = rawPerson._relationships.map((r: any) => {
+            return {
+                guid: r._guid,
+                type: RelationshipType.getRelationshipType(r._type._name)
+            } as Relationship
+        })
+
+        let events = rawPerson._events.map((e: any) => {
+            return {
+                date: e.Date,
+                description: e.Description,
+                location: e.Location
+            }
+        })
+
         let person = {
             photoFilenames: rawPerson._photoFNs,
             tags: rawPerson._tags,
-            keyValues: rawPerson._keyValues,
+            keyValues,
             photoPerformance,
             namePerformance,
             descPerformance,
             socialNets: rawPerson._socialNets,
-            events: rawPerson._events,
-            relationships: rawPerson._relationships,
+            events,
+            relationships,
             nickName: rawPerson.NickName,
             maidenName: rawPerson.MaidenName,
             guid: rawPerson.MyGuid,
@@ -97,11 +118,18 @@ class Util {
             alternateName: rawPerson.AlternateName,
             fullAternateName: rawPerson.FullAternateName,
             longName: rawPerson._LongName,
-            descriptionWithKeyValues: rawPerson._DescriptionWithKeyValues,
-            allKeyValues: rawPerson._AllKeyValues,
+            descriptionWithKeyValues: rawPerson.DescriptionWithKeyValues,
+            allKeyValues: rawPerson.AllKeyValues,
             description: rawPerson._Description,
             creationDate: rawPerson._CreationDate
         } as Person
+
+        if (rawPerson.DescriptionWithKeyValues.length > 2) {
+            console.log("EVENTS!")
+        }
+        if (rawPerson.AllKeyValues.length > 2) {
+            console.log("EVENTS!")
+        }
 
         person.photoPerformance.lastTested = Date.now()
         person.namePerformance.lastTested = Date.now()
