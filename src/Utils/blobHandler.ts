@@ -1,5 +1,5 @@
 import * as azure from 'azure-storage'
-import * as models from '../Models/person'
+import { Person } from '../Models/person'
 import { promisify } from 'util'
 
 //const imageContainer = 'faces'
@@ -48,21 +48,22 @@ export class BlobService {
     }*/
     
 
-    public async getPeopleAsync(): Promise<models.Person[]> {
+    public async getPeopleAsync(): Promise<Person[]> {
         let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmented).bind(this._blobService)
         let peopleBlobs: BlobResult[] = []
         try {
             peopleBlobs = (await listBlobsSegmentedAsync(personContainer, null as any)).entries
         }
         catch (err) {
-            console.log(JSON.stringify(err))
+            console.log("ERR: "+JSON.stringify(err))
         }
 
-        let people: models.Person[] = []
+        let people: Person[] = []
         for (let blobInfo of peopleBlobs) {
             let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
             if (blobFile) {
-                people.push(new models.Person(JSON.parse(blobFile)))
+                let person = new Person(JSON.parse(blobFile))
+                people.push(person)
             }
         }
         return people
@@ -76,46 +77,45 @@ export class BlobService {
             return await getBlobToTextAsync(containerName, blobName)
         }
         catch (err) {
-            console.log(JSON.stringify(err))
+            console.log("ERR: "+JSON.stringify(err))
         }
     }
 
     public uploadText(containerName: string, blobName: string, text: string) {
-        console.log(`${containerName}: ${blobName}`)
+        console.log(`Upload: ${containerName}: ${blobName}`)
 
         this._blobService.createBlockBlobFromText(containerName, blobName, text, 
             (error, result, response) => {
-                if (!error) {
-                    console.log(`${containerName}: ${blobName}`)
-                }
-                else {
-                    console.log(JSON.stringify(error))
+                if (error) {
+                    console.log(`ERR: ${blobName} ${JSON.stringify(error)}`)
                 }
               })
     }
 
-    public uploadFile(containerName: string, blobName: string, localFileName: string) {
-        console.log(`${containerName}: ${blobName}`)
-return
+    public uploadPerson(person: Person): void {
+        // Upload the person file
+        let dataContainerName = person.isArchived ? "archive-data" : "data"
+        const savePrefix = person.saveName[0].toUpperCase()
+        let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
+        this.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+    }
+
+    public async uploadFile(containerName: string, blobName: string, localFileName: string) {
+        let doesBlobExistAsync = promisify(this._blobService.doesBlobExist).bind(this._blobService)
+        let blobData = await doesBlobExistAsync(containerName, blobName)
+        if (blobData.exists) {
+            console.log(`EXISTS: ${localFileName}`)
+            return
+        }
         this._blobService.createBlockBlobFromLocalFile(containerName, blobName, localFileName, 
         (error, result, response) => {
-            if (!error) {
-                console.log(`${containerName}: ${blobName}`)
+            if (error) {
+                console.log(`!!!!!: ${localFileName} ${JSON.stringify(error)}`)
             }
             else {
-                console.log(`${localFileName} ${JSON.stringify(error)}`)
+                console.log(`SAVED: ${localFileName} ${JSON.stringify(error)}`)
             }
           })
-/*
-          BlobHandler.blobService.listBlobsSegmentedWithPrefix("faces","S/", undefined as any, (error, result, response) => {
-            if (!error) {
-                console.log(JSON.stringify(result))
-                console.log(JSON.stringify(response))
-            }
-            else {
-                console.log(JSON.stringify(error))
-            }
-          });*/
     }
 }
 

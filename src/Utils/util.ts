@@ -3,6 +3,7 @@ import * as path from 'path'
 import { Person } from '../Models/person'
 import { Performance } from '../Models/performance'
 import { RelationshipType, Relationship } from '../Models/relationship'
+import { Event, SocialNetType, SocialNet } from '../Models/models'
 import BlobService from './blobHandler'
 
 const dataPath = path.join(process.cwd(), './data')
@@ -76,9 +77,11 @@ class Util {
             frequencyOffsetEnd: rawPerson._descPerformance.FrequencyOffsetEnd
         } as Performance
 
-        let keyValues: { [s: string]: string } = {}
-        rawPerson._keyValues.forEach((kv: any) => {
-            keyValues[kv.Key] = kv.Value
+        let keyValues = rawPerson._keyValues.map((kv: any) => {
+            return {
+                key: kv.Key,
+                value: kv.Value
+            }
         })
 
         let relationships = rawPerson._relationships.map((r: any) => {
@@ -93,7 +96,15 @@ class Util {
                 date: e.Date,
                 description: e.Description,
                 location: e.Location
-            }
+            } as Event
+        })
+        
+        let socialNets = rawPerson._socialNets.map((sn: any) => {
+            return {
+                URL: sn.URL,
+                profileID: sn.profileId,
+                netType: sn.netType === 0 ? SocialNetType.LINKEDIN : SocialNetType.FACEBOOK
+            } as SocialNet
         })
 
         let person = {
@@ -103,7 +114,7 @@ class Util {
             photoPerformance,
             namePerformance,
             descPerformance,
-            socialNets: rawPerson._socialNets,
+            socialNets: socialNets,
             events,
             relationships,
             nickName: rawPerson.NickName,
@@ -112,24 +123,16 @@ class Util {
             isArchived: rawPerson.IsArchived,
             firstName: rawPerson.FirstName,
             lastName: rawPerson.LastName,
-            fullName: rawPerson.FullName,
             fullMaidenName: rawPerson.FullMaidenName,
             fullNickName: rawPerson.FullNickName,
             alternateName: rawPerson.AlternateName,
             fullAternateName: rawPerson.FullAternateName,
-            longName: rawPerson._LongName,
+            saveName: rawPerson.LongName,
             descriptionWithKeyValues: rawPerson.DescriptionWithKeyValues,
             allKeyValues: rawPerson.AllKeyValues,
-            description: rawPerson._Description,
-            creationDate: rawPerson._CreationDate
+            description: rawPerson.Description,
+            creationDate: rawPerson.CreationDate
         } as Person
-
-        if (rawPerson.DescriptionWithKeyValues.length > 2) {
-            console.log("EVENTS!")
-        }
-        if (rawPerson.AllKeyValues.length > 2) {
-            console.log("EVENTS!")
-        }
 
         person.photoPerformance.lastTested = Date.now()
         person.namePerformance.lastTested = Date.now()
@@ -138,7 +141,7 @@ class Util {
         return person
     }
 
-    private processPersonFile(personFile: string, imageFiles: string[]): void {
+    private importPersonFile(personFile: string, imageFiles: string[]): void {
        
         // Get name from person file
         let cutPos = dataPath.length + 1
@@ -166,10 +169,10 @@ class Util {
             BlobService.uploadFile(containername, imageBlobPath, localImageFile)
         })
 
+        person.saveName = personFileSplit[1]
+
         // Upload the person file
-        let dataContainerName = person.isArchived ? "archive-data" : "data"
-        let dataBlobPath = personFileSplit[0]+'\\'+personFileSplit[1]+'.json'
-        BlobService.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+      //TEMP  BlobService.uploadPerson(person)
     }
 
     public UploadLocalFiles(): void {
@@ -177,7 +180,7 @@ class Util {
 
         let imageFiles: string[] = []
         let personFiles: string[] = []
-        for (let i=0;i<200;i++) {
+        for (let i=0;i<fileNames.length;i++) {
             let df = fileNames[i]
   
             // Sort the files into types
@@ -188,7 +191,15 @@ class Util {
                 imageFiles.push(df)
             }   
         }
-        personFiles.forEach(personFile => this.processPersonFile(personFile, imageFiles))
+        personFiles.forEach(personFile => {
+            try {
+                this.importPersonFile(personFile, imageFiles)
+            }
+            catch (error) {
+                console.log("ERR: "+JSON.stringify(error))
+            }
+        })
+        console.log("DONE!")
     }
 }
 

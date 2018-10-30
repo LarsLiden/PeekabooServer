@@ -1,11 +1,11 @@
-import { Performance, SocialNet } from "./performance";
+import { Performance } from "./performance";
 import { Relationship } from "./relationship"
-import { PerfType, QuizPerson, LibraryPerson } from './models'
+import { PerfType, QuizPerson, LibraryPerson, Event, KeyValue, SocialNet } from './models'
 
 export class Person {
     photoFilenames: string[] = []
     tags: string[] = []   
-    keyValues: { [s: string]: string }  = {} 
+    keyValues: KeyValue[] = []
     photoPerformance: Performance = new Performance()
     namePerformance: Performance = new Performance()
     descPerformance: Performance = new Performance()
@@ -23,22 +23,26 @@ export class Person {
     fullNickName: string = ""
     alternateName: string = ""
     fullAternateName: string = ""
-    longName: string = ""
+    saveName: string = ""
     descriptionWithKeyValues: string = ""
     allKeyValues: string = ""
     description: string = ""
-    //personType: number = 0 // LARS not used
     creationDate: string = ""
-    //dirName: string = "" // LARS not used
 
     public constructor(init?: Partial<Person>) {
         Object.assign(this, init)
+
+        if (init) {
+            this.photoPerformance = new Performance(init.photoPerformance)
+            this.namePerformance = new Performance(init.namePerformance)
+            this.descPerformance = new Performance(init.descPerformance)
+        }
     }
 
     public toQuizPerson(perfType: PerfType): QuizPerson {
         return {
             guid: this.guid,
-            fullName: this.fullName,
+            fullName: `${this.firstName} ${this.lastName}`,
             blobNames: this.photoFilenames,
             performance: this.performance(perfType)
           } as QuizPerson

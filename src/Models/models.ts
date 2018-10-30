@@ -22,6 +22,7 @@ export interface QuizPerson {
 
 export interface LibrarySet {
     libraryPeople: LibraryPerson[]
+    selectedIndex: number
 }
 
 export interface LibraryPerson {
@@ -46,4 +47,21 @@ export interface Event {
     date: string
     description: string
     location: string
+}
+
+export interface KeyValue {
+    key: string
+    value: string
+}
+
+export enum SocialNetType
+{
+    LINKEDIN = "LINKEDIN",
+    FACEBOOK = "FACEBOOK"
+}
+
+export interface SocialNet {
+    URL: string
+    profileID: string
+    netType: SocialNetType
 }

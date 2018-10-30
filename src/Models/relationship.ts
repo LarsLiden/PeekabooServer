@@ -19,8 +19,12 @@ export enum RType {
     LIVED_WITH = "Lived with",
     SIBLING_OF = "Sibling of",
     PM_BY = "PM by",
-    PM_OF = "PM of"
-
+    PM_OF = "PM of",
+    GRANDCHILD_OF = "Grandchild of",
+    GRANDPARENT_OF = "Grandparent of",
+    STEP_SIBLING_OF = "Step Sibling of",
+    STEP_CHILD_OF = "Stepchild of",
+    STEP_PARENT_OF = "Stepparent of"
 }
 export class RelationshipType {
     static relationshipTypes: RelationshipType[] | null = null
@@ -53,6 +57,9 @@ export class RelationshipType {
         this.addRType(RType.LIVED_WITH)
         this.addRType(RType.SIBLING_OF)
         this.addRType(RType.PM_BY, RType.PM_OF)
+        this.addRType(RType.GRANDCHILD_OF, RType.GRANDPARENT_OF)
+        this.addRType(RType.STEP_SIBLING_OF)
+        this.addRType(RType.STEP_CHILD_OF, RType.STEP_PARENT_OF)
     } 
     public static getRelationshipType(name: string): RelationshipType {
         if (!this.relationshipTypes) {

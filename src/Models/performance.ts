@@ -44,12 +44,10 @@ export class Performance {
             if (elapsedTime < 0)
             {
                 throw new Error("invalid elapsed time")
-               //lars elapsedTime = 0
             }
             else if (elapsedTime > MAX_TIME)
             {
                 throw new Error("invalid elapsed time")
-                //larselapsedTime = MAX_TIME
             }
 
             this.lastTested = Date.now()
@@ -105,9 +103,9 @@ export class Performance {
  
 }
 
-export interface SocialNet {
-    URL: string
-    profileID: string
-    netType: number // LARS enum
+export interface TestResult {
+    guid: string,
+    result: number
 }
+
 

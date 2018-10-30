@@ -1,5 +1,6 @@
 import { Person } from './Models/person'
 import { Relationship } from './Models/relationship'
+import { TestResult } from './Models/performance'
 import { QuizSet, LibrarySet, Tag, Filter } from './Models/models'
 import { MAX_TIME, BIAS } from './Models/const'
 import BlobService from './Utils/blobHandler'
@@ -54,7 +55,10 @@ class DataProvider {
     public filteredPeople(filter: Filter): Person[] {
      
         if (filter.blocked.length === 0 && filter.required.length === 0) {
-            return this.people
+            return this.people.filter(p => {
+                // Reject if doesn't have appropriate test data
+                return (p.hasTestData(filter.perfType))
+            })
         }
         return this.people.filter(p => {
             // Reject if doesn't have appropriate test data
@@ -184,13 +188,43 @@ class DataProvider {
 
     }
 
+    public postTestResults(testResults: TestResult[]) : void
+    {
+        // Generate list of changed people
+        let changedPeople: Person[] = []
+        for (const testResult of testResults) {
+            // Add copy if haven't already added
+            if (!changedPeople.find(p => p.guid === testResult.guid)) {
+                let foundPerson = this.getPerson(testResult.guid)
+                if (!foundPerson) {
+                    throw new Error("Can't find person")
+                }
+                let personCopy = new Person(foundPerson)
+                changedPeople.push(personCopy)
+            }
+        }
+
+        // Now add test results to copy
+        for (const testResult of testResults) {
+            let editPerson = changedPeople.find(p => p.guid === testResult.guid)      
+            
+            // TODO: cover all perf types
+            editPerson!.photoPerformance.AddResult(testResult.result)
+        }
+
+        // Now save changed people
+        for (const person of changedPeople) {
+            BlobService.uploadPerson(person)
+        }
+
+    }
     public librarySet(filter: Filter): LibrarySet
     {
         // Filter people by tags
         let libraryPeople = this.filteredPeople(filter).map(p => {
             return p.toLibraryPerson(filter.perfType)
         })
-        return {libraryPeople}
+        return { libraryPeople, selectedIndex: 0 }
         // LARS todo - sort by perf type
         /*
         if (libraryPeople.length == 0) {

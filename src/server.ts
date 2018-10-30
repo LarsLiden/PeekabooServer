@@ -2,6 +2,7 @@ import * as express from 'express';
 import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
 import { QuizPerson, Filter } from './Models/models'
+import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
 import * as cors from 'cors'
 import * as url from 'url'
@@ -97,6 +98,18 @@ app.post('/api/libraryset', function(req, res, next) {
 
     const librarySet = DataProvider.librarySet(filter)
     res.send(librarySet)
+  } catch (error) {
+    res.send(error)
+  }
+})
+
+
+app.post('/api/testresults', function(req, res, next) {
+  try {
+    const testResults: TestResult[] = req.body.testResults
+
+    DataProvider.postTestResults(testResults)
+    res.sendStatus(200)
   } catch (error) {
     res.send(error)
   }
