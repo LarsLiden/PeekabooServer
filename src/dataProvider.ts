@@ -1,5 +1,4 @@
 import { Person } from './Models/person'
-import { Relationship } from './Models/relationship'
 import { TestResult } from './Models/performance'
 import { QuizSet, LibrarySet, Tag, Filter } from './Models/models'
 import { MAX_TIME, BIAS } from './Models/const'
@@ -351,19 +350,9 @@ class DataProvider {
         return person || null 
     }
 
-    public toDisplayPerson(source: Person): Person {
-        let dPerson: Person = JSON.parse(JSON.stringify(source))
-
-        dPerson.relationships = dPerson.relationships.map( r => {
-            let sourcePerson = this.getPerson(r.guid)
-            if (sourcePerson) {
-                return {...r, name: sourcePerson.fullName} as Relationship
-            }
-            else {
-                return {...r, name: "MISSING PERSON"} as Relationship
-            }
-        })
-        return dPerson 
+    public isReady(): boolean 
+    {
+        return this._people !== null
     }
 
     public get people(): Person[] 

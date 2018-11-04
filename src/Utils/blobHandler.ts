@@ -62,10 +62,14 @@ export class BlobService {
         for (let blobInfo of peopleBlobs) {
             let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
             if (blobFile) {
-                let person = new Person(JSON.parse(blobFile))
+                let rawPerson = JSON.parse(blobFile)
+                // Backward compatibility
+                delete rawPerson.fullName
+                let person = new Person(rawPerson)
                 people.push(person)
             }
         }
+        console.log("Library loaded...")
         return people
     }
 

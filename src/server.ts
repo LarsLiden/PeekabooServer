@@ -1,7 +1,7 @@
 import * as express from 'express';
 import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
-import { QuizPerson, Filter } from './Models/models'
+import { QuizPerson, Filter, StartState } from './Models/models'
 import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
 import * as cors from 'cors'
@@ -37,7 +37,7 @@ app.get('/api/person', function(req, res, next) {
     if (!person) { 
       throw new Error("MISSING PERSON")
     }
-    const displayPerson = DataProvider.toDisplayPerson(person)
+    const displayPerson = person.toDisplayPerson()
     res.send(displayPerson)
   } catch (error) {
       res.send(error)
@@ -71,6 +71,23 @@ app.get('/api/tags', function(req, res, next) {
   }
 });
 
+app.post('/api/start', function(req, res, next) {
+  try {
+    const name: string = req.body.name
+    if (!DataProvider.isReady()) {
+      res.send(StartState.WAITING)
+    }
+    else if (name === "lars") {
+      res.send(StartState.READY)
+    }
+    else {
+      res.send(StartState.INVALID)
+    }
+  } catch (error) {
+    res.send(error)
+  }
+});
+
 app.post('/api/tags', function(req, res, next) {
   try {
     const filter: Filter = req.body.filter
@@ -92,11 +109,11 @@ app.post('/api/quizset', function(req, res, next) {
   }
 })
 
-app.post('/api/libraryset', function(req, res, next) {
+app.post('/api/libraryset', async function(req, res, next) {
   try {
     const filter: Filter = req.body.filter
 
-    const librarySet = DataProvider.librarySet(filter)
+    const librarySet = await DataProvider.librarySet(filter)
     res.send(librarySet)
   } catch (error) {
     res.send(error)

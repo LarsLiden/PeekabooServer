@@ -8,6 +8,13 @@ export enum PerfType
     ALPHA = "ALPHA"
 }
 
+export enum StartState
+{
+    READY = "READY",
+    WAITING = "WAITNIG",
+    INVALID = "INVALID"
+}
+
 export interface QuizSet {
     quizPeople: QuizPerson[]
     frequencyTotal: number

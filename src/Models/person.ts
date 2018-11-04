@@ -1,6 +1,7 @@
 import { Performance } from "./performance";
 import { Relationship } from "./relationship"
 import { PerfType, QuizPerson, LibraryPerson, Event, KeyValue, SocialNet } from './models'
+import dataProvider from "../dataProvider";
 
 export class Person {
     photoFilenames: string[] = []
@@ -18,7 +19,6 @@ export class Person {
     isArchived: boolean = false
     firstName: string = ""
     lastName: string = ""
-    fullName: string = ""
     fullMaidenName: string = ""
     fullNickName: string = ""
     alternateName: string = ""
@@ -57,6 +57,24 @@ export class Person {
           } as LibraryPerson 
     }
 
+    public toDisplayPerson(): Person {
+        let dPerson: Person = JSON.parse(JSON.stringify(this))
+
+        dPerson.relationships = dPerson.relationships.map( r => {
+            let sourcePerson = dataProvider.getPerson(r.guid)
+            if (sourcePerson) {
+                return {...r, name: sourcePerson.fullName} as Relationship
+            }
+            else {
+                return {...r, name: "MISSING PERSON"} as Relationship
+            }
+        })
+        return dPerson 
+    }
+
+    public get fullName() {
+        return `${this.firstName} ${this.lastName}`
+    }
     public performance(perfType: PerfType): Performance {
         switch (perfType) {
             case PerfType.PHOTO: 
