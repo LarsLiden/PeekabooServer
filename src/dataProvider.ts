@@ -17,6 +17,30 @@ class DataProvider {
         return this._instance
     }
 
+    private extractBlockedTags(blockedTags: string[]) : Tag[] {
+
+        if (!this._people) {
+            return []
+        }
+
+        let tags: Tag[] = []
+        this._people.map(p => {
+            p.tags.map(t => {
+                const isBlocked = blockedTags.find(b => b === t)
+                if (isBlocked) {
+                    const tag = tags.find(tag => tag.name === t)
+                    if(tag) {
+                        tag.count++
+                    }
+                    else {
+                        tags.push({name: t, count: 1})
+                    } 
+                }
+            }) 
+        })
+        return tags
+    }
+
     private extractTags(people: Person[]) : Tag[] {
 
         let tags: Tag[] = []
@@ -31,24 +55,31 @@ class DataProvider {
                 } 
             }) 
         })
-        tags = tags.sort((a, b) => {
-            if (a.name < b.name) return -1
-            else if (b.name < a.name) return 1
-            else return 0
-        })
         return tags
     }
 
     public async init() {
         if (this._people == null) {
             this._people = await BlobService.getPeopleAsync() 
-            this._tags = this.extractTags(this._people)
+            let tags = this.extractTags(this._people)
+            this._tags = tags.sort((a, b) => {
+                if (a.name.toLowerCase() < b.name.toLowerCase()) return -1
+                else if (b.name.toLowerCase() < a.name.toLowerCase()) return 1
+                else return 0
+            })
         }
     }
 
+    // Return list of tags in filterd people and blocked tags
     public filteredTags(filter: Filter): Tag[] {
         let people = this.filteredPeople(filter)
-        return this.extractTags(people)
+        let tags = [...this.extractTags(people), ...this.extractBlockedTags(filter.blocked)]
+        tags = tags.sort((a, b) => {
+            if (a.name.toLowerCase() < b.name.toLowerCase()) return -1
+            else if (b.name.toLowerCase() < a.name.toLowerCase()) return 1
+            else return 0
+        })
+        return tags
     }
 
     public filteredPeople(filter: Filter): Person[] {
