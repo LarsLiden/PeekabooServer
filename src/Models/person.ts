@@ -1,7 +1,6 @@
 import { Performance } from "./performance";
 import { Relationship } from "./relationship"
-import { PerfType, QuizPerson, LibraryPerson, Event, KeyValue, SocialNet } from './models'
-import dataProvider from "../dataProvider";
+import { PerfType, Event, KeyValue, SocialNet } from './models'
 
 export class Person {
     photoFilenames: string[] = []
@@ -39,42 +38,10 @@ export class Person {
         }
     }
 
-    public toQuizPerson(perfType: PerfType): QuizPerson {
-        return {
-            guid: this.guid,
-            fullName: `${this.firstName} ${this.lastName}`,
-            blobNames: this.photoFilenames,
-            performance: this.performance(perfType)
-          } as QuizPerson
-    }
-
-    public toLibraryPerson(perfType: PerfType): LibraryPerson {
-        return {
-            guid: this.guid,
-            fullName: this.fullName,
-            blobName: this.photoFilenames[0],
-            tags: this.tags
-          } as LibraryPerson 
-    }
-
-    public toDisplayPerson(): Person {
-        let dPerson: Person = JSON.parse(JSON.stringify(this))
-
-        dPerson.relationships = dPerson.relationships.map( r => {
-            let sourcePerson = dataProvider.getPerson(r.guid)
-            if (sourcePerson) {
-                return {...r, name: sourcePerson.fullName} as Relationship
-            }
-            else {
-                return {...r, name: "MISSING PERSON"} as Relationship
-            }
-        })
-        return dPerson 
-    }
-
-    public get fullName() {
+    public fullName() {
         return `${this.firstName} ${this.lastName}`
     }
+
     public performance(perfType: PerfType): Performance {
         switch (perfType) {
             case PerfType.PHOTO: 
@@ -96,7 +63,7 @@ export class Person {
             case PerfType.PHOTO:
                 return (this.photoFilenames.length > 0);
             case PerfType.NAME:
-                return (this.fullName != "");
+                return (this.fullName() != "");
             case PerfType.DESC:
                 return (this.description != "");
             case PerfType.ALPHA:

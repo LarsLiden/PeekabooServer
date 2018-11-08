@@ -2,8 +2,17 @@ import { Person } from './Models/person'
 import { TestResult } from './Models/performance'
 import { QuizSet, LibrarySet, Tag, Filter } from './Models/models'
 import { MAX_TIME, BIAS } from './Models/const'
+import * as Convert from './Models/convert'
 import BlobService from './Utils/blobHandler'
 
+export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => object | number | string): T[] {
+    const index = xs.findIndex(x => getId(x) === getId(updatedX))
+    if (index < 0) {
+        throw new Error(`You attempted to replace item in list with id: ${getId(updatedX)} but no item could be found.  Perhaps you meant to add the item to the list or it was already removed.`)
+    }
+
+    return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
+}
 class DataProvider {
  
     private static _instance: DataProvider
@@ -116,7 +125,7 @@ class DataProvider {
     {
         // Filter people by tags
         let quizPeople = this.filteredPeople(filter).map(p => {
-            return p.toQuizPerson(filter.perfType)
+            return Convert.toQuizPerson(p, filter.perfType)
         })
 
         if (quizPeople.length == 0) {
@@ -246,13 +255,24 @@ class DataProvider {
         for (const person of changedPeople) {
             BlobService.uploadPerson(person)
         }
-
     }
+
+    public putPerson(person: Person) : void
+    {
+        const personObj = new Person({...person})
+        
+        // Replace local copy
+        this._people = replace(this._people!, personObj, p => p.guid)
+
+        // Replace data on server
+        BlobService.uploadPerson(person)
+    }
+
     public librarySet(filter: Filter): LibrarySet
     {
         // Filter people by tags
         let libraryPeople = this.filteredPeople(filter).map(p => {
-            return p.toLibraryPerson(filter.perfType)
+            return Convert.toLibraryPerson(p, filter.perfType)
         })
         return { libraryPeople, selectedIndex: 0 }
         // LARS todo - sort by perf type

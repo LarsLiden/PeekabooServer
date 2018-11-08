@@ -24,6 +24,7 @@ export interface QuizPerson {
     guid: string
     blobNames: string[]
     fullName: string
+    description: string
     performance: Performance
 }
 

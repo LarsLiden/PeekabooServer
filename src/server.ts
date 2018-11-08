@@ -1,6 +1,8 @@
 import * as express from 'express';
 import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
+import { Person } from './Models/person'
+import * as Convert from './Models/convert'
 import { QuizPerson, Filter, StartState } from './Models/models'
 import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
@@ -37,7 +39,7 @@ app.get('/api/person', function(req, res, next) {
     if (!person) { 
       throw new Error("MISSING PERSON")
     }
-    const displayPerson = person.toDisplayPerson()
+    const displayPerson = Convert.toDisplayPerson(person)
     res.send(displayPerson)
   } catch (error) {
       res.send(error)
@@ -51,7 +53,7 @@ app.get('/api/quiz', function(req, res, next) {
       .filter(p => p.photoFilenames.length > 0)
       .map(p => {
         return {
-          fullName: p.fullName,
+          fullName: p.fullName(),
           blobNames: p.photoFilenames
         } as QuizPerson
     })
@@ -120,12 +122,22 @@ app.post('/api/libraryset', async function(req, res, next) {
   }
 })
 
-
 app.post('/api/testresults', function(req, res, next) {
   try {
     const testResults: TestResult[] = req.body.testResults
 
     DataProvider.postTestResults(testResults)
+    res.sendStatus(200)
+  } catch (error) {
+    res.send(error)
+  }
+})
+
+app.put('/api/person', function(req, res, next) {
+  try {
+    const person: Person = req.body.person
+
+    DataProvider.putPerson(person)
     res.sendStatus(200)
   } catch (error) {
     res.send(error)
@@ -148,7 +160,7 @@ app.post('/api/import', function(req, res, next) {
 export async function run() {
  // util.UploadLocalFiles()
  await DataProvider.init()
- DataProvider.people.forEach(p => console.log(p.fullName))
+ DataProvider.people.forEach(p => console.log(p.fullName()))
 }
 
 run()
