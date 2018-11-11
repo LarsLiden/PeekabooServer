@@ -4,7 +4,7 @@ import { Person } from '../Models/person'
 import { Performance } from '../Models/performance'
 import { RelationshipType, Relationship } from '../Models/relationship'
 import { Event, SocialNetType, SocialNet } from '../Models/models'
-import BlobService from './blobHandler'
+import BlobService from './blobService'
 
 const dataPath = path.join(process.cwd(), './data')
 class Util {

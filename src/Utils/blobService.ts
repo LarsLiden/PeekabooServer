@@ -47,8 +47,34 @@ export class BlobService {
         }
     }*/
     
+    public async getPeopleStartingWith(letter: string): Promise<Person[]> {
+
+        let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmentedWithPrefix).bind(this._blobService)
+        let peopleBlobs: BlobResult[] = []
+        try {
+            peopleBlobs = (await listBlobsSegmentedAsync(personContainer, letter, null as any)).entries
+        }
+        catch (err) {
+            console.log("ERR: "+JSON.stringify(err))
+        }
+
+        let people: Person[] = []
+        for (let blobInfo of peopleBlobs) {
+            let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
+            if (blobFile) {
+                let person = JSON.parse(blobFile)
+                // Backward compatibility
+                delete person.fullName
+                people.push(person)
+            }
+            if (people.length > 20) return people // LARS DEV  TEMP
+        }
+        console.log(`Library loaded ${letter}`)
+        return people
+    }
 
     public async getPeopleAsync(): Promise<Person[]> {
+
         let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmented).bind(this._blobService)
         let peopleBlobs: BlobResult[] = []
         try {
@@ -62,12 +88,12 @@ export class BlobService {
         for (let blobInfo of peopleBlobs) {
             let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
             if (blobFile) {
-                let rawPerson = JSON.parse(blobFile)
+                let person = JSON.parse(blobFile)
                 // Backward compatibility
-                delete rawPerson.fullName
-                let person = new Person(rawPerson)
+                delete person.fullName
                 people.push(person)
             }
+            if (people.length > 20) return people // LARS DEV  TEMP
         }
         console.log("Library loaded...")
         return people
@@ -94,6 +120,23 @@ export class BlobService {
                     console.log(`ERR: ${blobName} ${JSON.stringify(error)}`)
                 }
               })
+    }
+/*
+    public async uploadBlob(containerName: string, blobName: string, blob: string) {
+        let uploadBlobAsync = promisify(this.uploadBlobSync).bind(this)
+        await uploadBlobAsync(containerName, blobName, blob)
+    }
+*/
+    // TODO: switch to async so can catch error and block person change
+    public uploadBlob(containerName: string, blobName: string, buffer: Buffer) {
+        console.log(`Upload: ${containerName}: ${blobName}`)
+     /*  
+        this._blobService.createBlockBlobFromStream(containerName, blobName, buffer, 
+            (error, result, response) => {
+                if (error) {
+                    console.log(`ERR: ${blobName} ${JSON.stringify(error)}`)
+                }
+            })*/
     }
 
     public uploadPerson(person: Person): void {
