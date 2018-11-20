@@ -1,9 +1,11 @@
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
+import { User } from '../Models/models'
+import { GetContainer, ContainerType } from '../Utils/util'
 import { promisify } from 'util'
 
-//const imageContainer = 'faces'
-const personContainer = 'data'
+const adminContainer = 'admin'
+const userBlob = "users"
 
 interface BlobResult {
     name: string;
@@ -30,6 +32,29 @@ export class BlobService {
         return this._instance
     }
     
+    public async getUsers(): Promise<User[]> {
+        let blobFile = await this.getBlobAsTextAsync(adminContainer, userBlob)
+        if (blobFile) {
+            let users: User[] = JSON.parse(blobFile)
+            return users
+        }
+        return []
+    }
+
+    public async updateUsers(users: User[]): Promise<void> {
+        await this.uploadText(adminContainer, userBlob, JSON.stringify(users))
+    }
+
+    public async createContainer(containerName: string, isPrivate: boolean) {
+
+        let createContainerIfNotExists = promisify(this._blobService.createContainerIfNotExists).bind(this._blobService)
+        
+        await createContainerIfNotExists(containerName, 
+            {
+            publicAccessLevel: isPrivate ? null : 'blob'
+          })
+    }
+
 /*
     private static aggregateBlobs(err, result, cb) {
         if (err) {
@@ -47,12 +72,12 @@ export class BlobService {
         }
     }*/
     
-    public async getPeopleStartingWith(letter: string): Promise<Person[]> {
-
+    public async getPeopleStartingWith(user: User, letter: string): Promise<Person[]> {
+        let containerName = GetContainer(user, ContainerType.DATA)
         let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmentedWithPrefix).bind(this._blobService)
         let peopleBlobs: BlobResult[] = []
         try {
-            peopleBlobs = (await listBlobsSegmentedAsync(personContainer, letter, null as any)).entries
+            peopleBlobs = (await listBlobsSegmentedAsync(containerName, letter, null as any)).entries
         }
         catch (err) {
             console.log("ERR: "+JSON.stringify(err))
@@ -60,7 +85,7 @@ export class BlobService {
 
         let people: Person[] = []
         for (let blobInfo of peopleBlobs) {
-            let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
+            let blobFile = await this.getBlobAsTextAsync(containerName, blobInfo.name)
             if (blobFile) {
                 let person = JSON.parse(blobFile)
                 // Backward compatibility
@@ -73,12 +98,13 @@ export class BlobService {
         return people
     }
 
-    public async getPeopleAsync(): Promise<Person[]> {
-
+    // NOT CURRENTLY USED
+    public async getPeopleAsync(user: User): Promise<Person[]> {
+        let containerName = GetContainer(user, ContainerType.DATA)
         let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmented).bind(this._blobService)
         let peopleBlobs: BlobResult[] = []
         try {
-            peopleBlobs = (await listBlobsSegmentedAsync(personContainer, null as any)).entries
+            peopleBlobs = (await listBlobsSegmentedAsync(containerName, null as any)).entries
         }
         catch (err) {
             console.log("ERR: "+JSON.stringify(err))
@@ -86,7 +112,7 @@ export class BlobService {
 
         let people: Person[] = []
         for (let blobInfo of peopleBlobs) {
-            let blobFile = await this.getBlobAsTextAsync(personContainer, blobInfo.name)
+            let blobFile = await this.getBlobAsTextAsync(containerName, blobInfo.name)
             if (blobFile) {
                 let person = JSON.parse(blobFile)
                 // Backward compatibility
@@ -121,27 +147,13 @@ export class BlobService {
                 }
               })
     }
-/*
-    public async uploadBlob(containerName: string, blobName: string, blob: string) {
-        let uploadBlobAsync = promisify(this.uploadBlobSync).bind(this)
-        await uploadBlobAsync(containerName, blobName, blob)
-    }
-*/
-    // TODO: switch to async so can catch error and block person change
-    public uploadBlob(containerName: string, blobName: string, buffer: Buffer) {
-        console.log(`Upload: ${containerName}: ${blobName}`)
-     /*  
-        this._blobService.createBlockBlobFromStream(containerName, blobName, buffer, 
-            (error, result, response) => {
-                if (error) {
-                    console.log(`ERR: ${blobName} ${JSON.stringify(error)}`)
-                }
-            })*/
-    }
-
-    public uploadPerson(person: Person): void {
+    
+    public uploadPerson(user: User, person: Person): void {
         // Upload the person file
-        let dataContainerName = person.isArchived ? "archive-data" : "data"
+        let dataContainerName = person.isArchived 
+                ? GetContainer(user, ContainerType.ARCHIVE_DATA)
+                : GetContainer(user, ContainerType.DATA)
+
         const savePrefix = person.saveName[0].toUpperCase()
         let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
         this.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))

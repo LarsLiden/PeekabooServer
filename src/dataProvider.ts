@@ -1,4 +1,6 @@
 import { Person } from './Models/person'
+import { User } from './Models/models'
+import { generateGUID, GetContainer, ContainerType } from './Utils/util'
 import { TestResult } from './Models/performance'
 import { Cache } from './Models/cache'
 import BlobService from './Utils/blobService'
@@ -16,6 +18,7 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => object | numbe
 class DataProvider {
  
     private static _instance: DataProvider
+    private users: User[] | null = null
  
     public static Instance(): DataProvider {
         if (!this._instance) {
@@ -24,16 +27,47 @@ class DataProvider {
         return this._instance
     }
 
-    public async getPeopleStartingWith(letter: string) {
+    public async userFromId(hwmid: string): Promise<User | undefined> {
+        if (!this.users) {
+            this.users = await BlobService.getUsers()
+        }
+        return this.users.find(u => u.hwmid === hwmid)
+    }
+
+    public async getUser(user: User): Promise<User> {
+        if (!this.users) {
+            this.users = await BlobService.getUsers()
+        }
+        let foundUser = this.users.find(u => u.id === user.id)
+
+        if (foundUser) {
+            return foundUser
+        }
+        // Add a new user
+        user.hwmid = generateGUID()
+        user.containerid = generateGUID()
+        this.users.push(user)
+        BlobService.updateUsers(this.users)
+
+        // Create storate containers
+        let imageContainer = GetContainer(user, ContainerType.FACES)
+        await BlobService.createContainer(imageContainer, false) 
+
+        let dataContainer = GetContainer(user, ContainerType.DATA)
+        await BlobService.createContainer(dataContainer, true) 
+        return user
+    }
+
+    public async getPeopleStartingWith(user: User, letter: string) {
         let people: Person[] = Cache.Get(letter)
         if (!people) {
-            people = await BlobService.getPeopleStartingWith(letter)
+            people = await BlobService.getPeopleStartingWith(user, letter)
             Cache.Set(letter, people)
         }
         return people
     }
 
-    public postTestResults(testResults: TestResult[]) : void
+    public postTestResults(user: User, testResults: TestResult[]) : void
     {
         // LARS TODO
         /*
@@ -65,7 +99,7 @@ class DataProvider {
         }*/
     }
 
-    public putPersonImage(personGUID: string, image: Buffer) : void
+    public putPersonImage(user: User, personGUID: string, image: Buffer) : void
     {
         // LARS TODO
     /*    let person = this.getPerson(personGUID)
@@ -96,14 +130,14 @@ class DataProvider {
         }*/
     }
 
-    public putPerson(person: Person) : void
+    public putPerson(user: User, person: Person) : void
     {        
         // Invalidate cache
         const cacheKey = person.saveName[0]
         Cache.Invalidate(cacheKey)
 
         // Replace data on server
-        BlobService.uploadPerson(person)
+        BlobService.uploadPerson(user, person)
     }
 }
 

@@ -2,7 +2,7 @@ import * as express from 'express';
 import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
 import { Person } from './Models/person'
-import { StartState } from './Models/models'
+import { User } from './Models/models'
 import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
 import * as cors from 'cors'
@@ -22,54 +22,82 @@ app.listen(port, () => {
   return url.parse(req.url, true).query || {}
 }*/
 
-app.get('/api/test', function(req, res, next) {
+app.post('/api/login', async function(req, res, next) {
   try {
-    res.send("Success!")
-  } catch (error) {
-    res.send(error)
-  }
-});
+    const user: User = req.body.user
 
-app.post('/api/start', function(req, res, next) {
-  try {
-    const name: string = req.body.name
-    if (name === "lars") {
+    let foundUser = await DataProvider.getUser(user)
+    let sendUser = {...foundUser}
+    delete sendUser.containerid
+    res.send(sendUser)
+    /*
+    if (user.name === "Lars Liden") {
       res.send(StartState.READY)
     }
     else {
       res.send(StartState.INVALID)
-    }
+    }*/
   } catch (error) {
     res.send(error)
   }
 });
 
-app.post('/api/testresults', function(req, res, next) {
+app.post('/api/testresults', async function(req, res, next) {
   try {
     const testResults: TestResult[] = req.body.testResults
-
-    DataProvider.postTestResults(testResults)
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.send(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.send(400)
+      return
+    }
+    DataProvider.postTestResults(user, testResults)
     res.sendStatus(200)
   } catch (error) {
     res.send(error)
   }
 })
 
+
 app.get('/api/people/:letter', async function(req, res, next) {
   try {
     const { letter } = req.params
-    const people = await DataProvider.getPeopleStartingWith(letter)
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.send(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.send(400)
+      return
+    }
+    const people = await DataProvider.getPeopleStartingWith(user, letter)
     res.send(people)
+    
   } catch (error) {
     res.send(error)
   }
 })
 
-app.put('/api/person', function(req, res, next) {
+app.put('/api/person', async function(req, res, next) {
   try {
     const person: Person = req.body.person
-
-    DataProvider.putPerson(person)
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.send(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.send(400)
+      return
+    }
+    DataProvider.putPerson(user, person)
     res.sendStatus(200)
   } catch (error) {
     res.send(error)
@@ -80,18 +108,39 @@ app.put('/api/person/:personGUID/image', async function(req, res, next) {
   try {
     const jsonImage: string = req.body.image
     const { personGUID } = req.params
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.send(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.send(400)
+      return
+    }
 
     let buffer = Buffer.from(JSON.parse(jsonImage));
-    await DataProvider.putPersonImage(personGUID, buffer)
+    await DataProvider.putPersonImage(user, personGUID, buffer)
     res.sendStatus(200)
   } catch (error) {
     res.send(error)
   }
 })
 
-app.post('/api/import', function(req, res, next) {
+app.post('/api/import', async function(req, res, next) {
   try {
-    util.UploadLocalFiles()
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.send(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.send(400)
+      return
+    }
+
+    util.UploadLocalFiles(user)
     res.send(200)
   } catch (error) {
     res.send(error)

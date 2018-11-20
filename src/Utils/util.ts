@@ -3,7 +3,7 @@ import * as path from 'path'
 import { Person } from '../Models/person'
 import { Performance } from '../Models/performance'
 import { RelationshipType, Relationship } from '../Models/relationship'
-import { Event, SocialNetType, SocialNet } from '../Models/models'
+import { Event, SocialNetType, SocialNet, User } from '../Models/models'
 import BlobService from './blobService'
 
 const dataPath = path.join(process.cwd(), './data')
@@ -141,7 +141,7 @@ class Util {
         return person
     }
 
-    private importPersonFile(personFile: string, imageFiles: string[]): void {
+    private importPersonFile(user: User, personFile: string, imageFiles: string[]): void {
        
         // Get name from person file
         let cutPos = dataPath.length + 1
@@ -165,17 +165,34 @@ class Util {
         myImageFiles.forEach(localImageFile => {
             let imageBlobPath = localImageFile.substr(cutPos).split(`\\\\`).join(`\\`)
             person.photoFilenames.push(imageBlobPath)
-            let containername = person.isArchived ? "archive-faces" : "faces"
+            
+            let containername = person.isArchived 
+                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
+                : GetContainer(user, ContainerType.FACES)
             BlobService.uploadFile(containername, imageBlobPath, localImageFile)
         })
 
         person.saveName = personFileSplit[1]
 
         // Upload the person file
-      //TEMP  BlobService.uploadPerson(person)
+        BlobService.uploadPerson(user, person)
     }
 
-    public UploadLocalFiles(): void {
+    public async UploadLocalFiles(user: User): Promise<void> {
+
+        // Create storate containers
+        let imageContainer = GetContainer(user, ContainerType.FACES)
+        await BlobService.createContainer(imageContainer, false) 
+
+        let dataContainer = GetContainer(user, ContainerType.DATA)
+        await BlobService.createContainer(dataContainer, true) 
+
+        let imageAContainer = GetContainer(user, ContainerType.ARCHIVE_FACES)
+        await BlobService.createContainer(imageAContainer, false) 
+
+        let dataAContainer = GetContainer(user, ContainerType.ARCHIVE_DATA)
+        await BlobService.createContainer(dataAContainer, true) 
+
         let fileNames = this.walkSync(dataPath, [])   
 
         let imageFiles: string[] = []
@@ -193,7 +210,7 @@ class Util {
         }
         personFiles.forEach(personFile => {
             try {
-                this.importPersonFile(personFile, imageFiles)
+                this.importPersonFile(user, personFile, imageFiles)
             }
             catch (error) {
                 console.log("ERR: "+JSON.stringify(error))
@@ -202,5 +219,26 @@ class Util {
         console.log("DONE!")
     }
 }
+
+export enum ContainerType { 
+    FACES = "faces-",
+    DATA = "data-hwm-",
+    ARCHIVE_FACES = "archive-faces-",
+    ARCHIVE_DATA = "archive-data-hwm-"
+}
+
+export function GetContainer(user: User, type: ContainerType) {
+    return `${type}${user.containerid}`
+}
+
+export function generateGUID(): string {
+    let d = new Date().getTime()
+    let guid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+      let r = ((d + Math.random() * 16) % 16) | 0
+      d = Math.floor(d / 16)
+      return (char === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+    })
+    return guid
+  }
 
 export default Util.Instance()
