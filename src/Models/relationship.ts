@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 export interface Relationship {
     type: RelationshipType
     guid: string

@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import * as express from 'express';
 import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
@@ -38,7 +42,7 @@ app.post('/api/login', async function(req, res, next) {
       res.send(StartState.INVALID)
     }*/
   } catch (error) {
-    res.send(error)
+    res.sendStatus(500)
   }
 });
 
@@ -47,18 +51,18 @@ app.post('/api/testresults', async function(req, res, next) {
     const testResults: TestResult[] = req.body.testResults
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
     const user = await DataProvider.userFromId(hwmid as string)
     if (!user) {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
     DataProvider.postTestResults(user, testResults)
     res.sendStatus(200)
   } catch (error) {
-    res.send(error)
+    res.sendStatus(500)
   }
 })
 
@@ -73,14 +77,14 @@ app.get('/api/people/:letter', async function(req, res, next) {
     }
     const user = await DataProvider.userFromId(hwmid as string)
     if (!user) {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
     const people = await DataProvider.getPeopleStartingWith(user, letter)
     res.send(people)
     
   } catch (error) {
-    res.send(error)
+    res.sendStatus(500)
   }
 })
 
@@ -89,18 +93,41 @@ app.put('/api/person', async function(req, res, next) {
     const person: Person = req.body.person
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
     const user = await DataProvider.userFromId(hwmid as string)
     if (!user) {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
-    DataProvider.putPerson(user, person)
+    
+    await DataProvider.putPerson(user, person)
     res.sendStatus(200)
+
   } catch (error) {
-    res.send(error)
+    res.sendStatus(400)
+  }
+})
+
+app.delete('/api/person/:key/:personGUID', async function(req, res, next) {
+  try {
+    const { personGUID, key } = req.params
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    await DataProvider.deletePerson(user, key, personGUID)
+    res.sendStatus(200)
+
+  } catch (error) {
+    res.sendStatus(400)
   }
 })
 
@@ -110,12 +137,12 @@ app.put('/api/person/:personGUID/image', async function(req, res, next) {
     const { personGUID } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
     const user = await DataProvider.userFromId(hwmid as string)
     if (!user) {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
 
@@ -123,7 +150,7 @@ app.put('/api/person/:personGUID/image', async function(req, res, next) {
     await DataProvider.putPersonImage(user, personGUID, buffer)
     res.sendStatus(200)
   } catch (error) {
-    res.send(error)
+    res.sendStatus(500)
   }
 })
 
@@ -131,18 +158,18 @@ app.post('/api/import', async function(req, res, next) {
   try {
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
     const user = await DataProvider.userFromId(hwmid as string)
     if (!user) {
-      res.send(400)
+      res.sendStatus(400)
       return
     }
 
-    util.UploadLocalFiles(user)
-    res.send(200)
+    await util.UploadLocalFiles(user)
+    res.sendStatus(200)
   } catch (error) {
-    res.send(error)
+    res.sendStatus(500)
   }
 })

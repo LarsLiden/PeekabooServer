@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import { Performance } from "./performance";
 import { Relationship } from "./relationship"
 import { Event, KeyValue, SocialNet } from './models'
@@ -22,7 +26,7 @@ export interface Person {
     fullNickName: string
     alternateName: string
     fullAternateName: string
-    saveName: string
+    saveName: string 
     descriptionWithKeyValues: string
     allKeyValues: string
     description: string

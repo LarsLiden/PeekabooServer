@@ -1,5 +1,10 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import { Person } from './Models/person'
 import { User } from './Models/models'
+import { cacheKey } from './Utils/util'
 import { generateGUID, GetContainer, ContainerType } from './Utils/util'
 import { TestResult } from './Models/performance'
 import { Cache } from './Models/cache'
@@ -99,6 +104,24 @@ class DataProvider {
         }*/
     }
 
+    public async deletePerson(user: User, key: string, personGUID: string) : Promise<void>
+    {
+        let people: Person[] = Cache.Get(key)
+        // If not in cache load
+        if (!people) {
+            people = await this.getPeopleStartingWith(user, key)
+        }
+        let person = people.find(p => p.guid === personGUID)
+        if (!person) {
+            throw new Error("Can't find person")
+        }
+
+        await BlobService.deletePerson(user, person)
+
+        // Update cache
+        this.cacheDeletePerson(user, person)
+    }
+
     public putPersonImage(user: User, personGUID: string, image: Buffer) : void
     {
         // LARS TODO
@@ -130,14 +153,32 @@ class DataProvider {
         }*/
     }
 
-    public putPerson(user: User, person: Person) : void
+    public async putPerson(user: User, person: Person) : Promise<void>
     {        
-        // Invalidate cache
-        const cacheKey = person.saveName[0]
-        Cache.Invalidate(cacheKey)
-
         // Replace data on server
-        BlobService.uploadPerson(user, person)
+        await BlobService.uploadPerson(user, person)
+
+        // Update cache
+        this.cacheReplacePerson(user, person)
+    }
+
+    public cacheReplacePerson(user: User, person: Person) : void {
+        const key = cacheKey(person)
+        let peopleCache: Person[] = Cache.Get(key)
+        if (peopleCache) {
+            peopleCache = peopleCache.filter(p => p.guid !== person.guid)
+            peopleCache.push(person)
+            Cache.Set(key, peopleCache)
+        }
+    }
+
+    public cacheDeletePerson(user: User, person: Person) : void {
+        const key = cacheKey(person)
+        let peopleCache: Person[] = Cache.Get(key)
+        if (peopleCache) {
+            peopleCache = peopleCache.filter(p => p.guid !== person.guid)
+            Cache.Set(key, peopleCache)
+        }
     }
 }
 

@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 export interface Performance {
     bestTime: number
     avgTime: number

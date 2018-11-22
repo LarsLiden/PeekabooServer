@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import * as fs from 'fs'
 import * as path from 'path'
 import { Person } from '../Models/person'
@@ -174,7 +178,7 @@ class Util {
 
         person.saveName = personFileSplit[1]
 
-        // Upload the person file
+        // Upload the person file (don't await)
         BlobService.uploadPerson(user, person)
     }
 
@@ -240,5 +244,10 @@ export function generateGUID(): string {
     })
     return guid
   }
+
+  
+export function cacheKey(person: Person): string {
+    return person.saveName![0].toUpperCase()
+} 
 
 export default Util.Instance()

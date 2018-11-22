@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
 import { User } from '../Models/models'
@@ -80,6 +84,7 @@ export class BlobService {
             peopleBlobs = (await listBlobsSegmentedAsync(containerName, letter, null as any)).entries
         }
         catch (err) {
+            // TODO: allow throw and catch it
             console.log("ERR: "+JSON.stringify(err))
         }
 
@@ -92,7 +97,6 @@ export class BlobService {
                 delete person.fullName
                 people.push(person)
             }
-            if (people.length > 20) return people // LARS DEV  TEMP
         }
         console.log(`Library loaded ${letter}`)
         return people
@@ -137,18 +141,14 @@ export class BlobService {
         }
     }
 
-    public uploadText(containerName: string, blobName: string, text: string) {
+    public async uploadText(containerName: string, blobName: string, text: string) {
         console.log(`Upload: ${containerName}: ${blobName}`)
 
-        this._blobService.createBlockBlobFromText(containerName, blobName, text, 
-            (error, result, response) => {
-                if (error) {
-                    console.log(`ERR: ${blobName} ${JSON.stringify(error)}`)
-                }
-              })
+        const createBlockBlobFromText = promisify(this._blobService.createBlockBlobFromText).bind(this._blobService)
+        await createBlockBlobFromText(containerName, blobName, text)
     }
     
-    public uploadPerson(user: User, person: Person): void {
+    public async uploadPerson(user: User, person: Person): Promise<void> {
         // Upload the person file
         let dataContainerName = person.isArchived 
                 ? GetContainer(user, ContainerType.ARCHIVE_DATA)
@@ -156,7 +156,39 @@ export class BlobService {
 
         const savePrefix = person.saveName[0].toUpperCase()
         let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
-        this.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+        await this.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+    }
+
+    public async deletePerson(user: User, person: Person): Promise<void> {
+
+        // Delete photos first
+        let promises = this.deletePhotos(user, person)
+
+        let dataContainerName = person.isArchived 
+                ? GetContainer(user, ContainerType.ARCHIVE_DATA)
+                : GetContainer(user, ContainerType.DATA)
+
+        const savePrefix = person.saveName[0].toUpperCase()
+        let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
+        promises.push(this.deleteBlob(dataContainerName, dataBlobPath))
+        await Promise.all(promises)
+    }
+
+    public deletePhotos(user: User, person: Person): Promise<void>[] {
+        let faceContainerName = person.isArchived 
+                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
+                : GetContainer(user, ContainerType.FACES)
+
+        let promises: Promise<void>[] = []
+        person.photoFilenames.forEach(blob =>
+            promises.push(this.deleteBlob(faceContainerName, blob))
+        )  
+        return promises
+    }
+
+    public async deleteBlob(containerName: string, blobName: string) {
+        let deleteBlobAsync = promisify(this._blobService.deleteBlob).bind(this._blobService)
+        await deleteBlobAsync(containerName, blobName)
     }
 
     public async uploadFile(containerName: string, blobName: string, localFileName: string) {

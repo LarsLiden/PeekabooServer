@@ -5,14 +5,20 @@ export interface CacheItem {
 }
 
 
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 export class Cache {
     static cacheItems: CacheItem[] = []
 
-    public static Invalidate(key: string) {
+    public static Invalidate(rawkey: string) {
+        const key = rawkey.toUpperCase()
         this.cacheItems = this.cacheItems.filter(i => i.key !== key)
     }
 
-    public static Get(key: string): any {
+    public static Get(rawkey: string): any {
+        const key = rawkey.toUpperCase()
         let cacheObj = this.cacheItems.find(i => i.key === key)
         if (cacheObj) {
             cacheObj.timestamp = Date.now()
@@ -21,23 +27,22 @@ export class Cache {
         return null
     }
 
-    public static Set(key: string, value: any) {
+    public static Set(rawkey: string, value: any) {
+        const key = rawkey.toUpperCase()
         if (value ===  null) {
             this.Invalidate(key)
             return
         }
         let cacheItem = this.Get(key)
         if (cacheItem) {
-            cacheItem.value = value
-            cacheItem.timestamp = Date.now()
+            this.cacheItems = this.cacheItems.filter(i => i.key != key)
         }
-        else {
-            let newCacheItem = {
-                key,
-                value,
-                timestamp: Date.now()
-            }
-            this.cacheItems.push(newCacheItem)
+
+        let newCacheItem = {
+            key,
+            value,
+            timestamp: Date.now()
         }
+        this.cacheItems.push(newCacheItem)
     }
 }
