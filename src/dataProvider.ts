@@ -4,8 +4,8 @@
  */
 import { Person } from './Models/person'
 import { User } from './Models/models'
-import { cacheKey } from './Utils/util'
-import { generateGUID, GetContainer, ContainerType } from './Utils/util'
+import { getKey, getPhotoBlobName } from './Utils/util'
+import { generateGUID, GetContainer, ContainerType, getNextPhotoName } from './Utils/util'
 import { TestResult } from './Models/performance'
 import { Cache } from './Models/cache'
 import BlobService from './Utils/blobService'
@@ -55,11 +55,11 @@ class DataProvider {
         BlobService.updateUsers(this.users)
 
         // Create storate containers
-        let imageContainer = GetContainer(user, ContainerType.FACES)
-        await BlobService.createContainer(imageContainer, false) 
+        let photoContainer = GetContainer(user, ContainerType.FACES)
+        await BlobService.blobCreateContainer(photoContainer, false) 
 
         let dataContainer = GetContainer(user, ContainerType.DATA)
-        await BlobService.createContainer(dataContainer, true) 
+        await BlobService.blobCreateContainer(dataContainer, true) 
         return user
     }
 
@@ -122,35 +122,58 @@ class DataProvider {
         this.cacheDeletePerson(user, person)
     }
 
-    public putPersonImage(user: User, personGUID: string, image: Buffer) : void
+    public async putPhoto(user: User, key: string, personGUID: string, photoData: string) : Promise<string>
     {
-        // LARS TODO
-    /*    let person = this.getPerson(personGUID)
+        let people: Person[] = Cache.Get(key)
+        // If not in cache load
+        if (!people) {
+            people = await this.getPeopleStartingWith(user, key)
+        }
+        let person = people.find(p => p.guid === personGUID)
         if (!person) {
             throw new Error("Can't find person")
         }
 
-        // Make a copy
-        const personObj = new Person({...person})
-        const imageSaveName = personObj.getNextPhotoName()
+        const photoName = getNextPhotoName(person)
         
-        // Save image
-        let containername = person.isArchived ? "archive-faces" : "faces"
-
         try {
-            BlobService.uploadBlob(containername, imageSaveName, image)
+            const blobPhotoName = getPhotoBlobName(person, photoName)
+            await BlobService.uploadPhoto(user, person, blobPhotoName, photoData)
 
             // Add to person
-            personObj.photoFilenames.push(imageSaveName)
+            person.photoFilenames.push(photoName)
             
-            // Invalidate cache (TODO)
+            // Update cache
+            this.cacheReplacePerson(user, person)
 
             // Replace data on server
-            BlobService.uploadPerson(person)
+            await BlobService.uploadPerson(user, person)
+
+            return photoName
         }
         catch (error) {
             throw error
-        }*/
+        }
+    }
+
+    public async deletePhoto(user: User, key: string, personGUID: string, photoName: string) : Promise<void>
+    {
+        let people: Person[] = Cache.Get(key)
+        // If not in cache load
+        if (!people) {
+            people = await this.getPeopleStartingWith(user, key)
+        }
+        let person = people.find(p => p.guid === personGUID)
+        if (!person) {
+            throw new Error("Can't find person")
+        }
+
+        const photoBlobName = getPhotoBlobName(person, photoName)
+        await BlobService.deletePhoto(user, person, photoBlobName)
+
+        // Update person
+        person.photoFilenames = person.photoFilenames.filter(p => p !== photoName)
+        this.cacheReplacePerson(user, person)
     }
 
     public async putPerson(user: User, person: Person) : Promise<void>
@@ -163,7 +186,7 @@ class DataProvider {
     }
 
     public cacheReplacePerson(user: User, person: Person) : void {
-        const key = cacheKey(person)
+        const key = getKey(person)
         let peopleCache: Person[] = Cache.Get(key)
         if (peopleCache) {
             peopleCache = peopleCache.filter(p => p.guid !== person.guid)
@@ -173,7 +196,7 @@ class DataProvider {
     }
 
     public cacheDeletePerson(user: User, person: Person) : void {
-        const key = cacheKey(person)
+        const key = getKey(person)
         let peopleCache: Person[] = Cache.Get(key)
         if (peopleCache) {
             peopleCache = peopleCache.filter(p => p.guid !== person.guid)

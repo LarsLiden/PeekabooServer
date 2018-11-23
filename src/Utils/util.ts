@@ -153,7 +153,7 @@ class Util {
         let nameString = personFileSplit[1]
 
         // Retrieve image files for this name
-        let myImageFiles = imageFiles.filter(ifilename => {
+        let myPhotoFiles = imageFiles.filter(ifilename => {
             let imageFileSplit = ifilename.substr(cutPos).split(`\\\\`)
             return imageFileSplit[1] === nameString
         })
@@ -162,18 +162,20 @@ class Util {
         let person = this.getPersonFromFile(personFile)
 
         // Upload photos and update links
-        if (person.photoFilenames.length != myImageFiles.length) {
+        if (person.photoFilenames.length != myPhotoFiles.length) {
             throw new Error("Wrong number of files found")
         }
         person.photoFilenames = []
-        myImageFiles.forEach(localImageFile => {
-            let imageBlobPath = localImageFile.substr(cutPos).split(`\\\\`).join(`\\`)
-            person.photoFilenames.push(imageBlobPath)
+        myPhotoFiles.forEach(localPhotoFile => {
+            const photoName = getNextPhotoName(person)
+            const photoBlobName = getPhotoBlobName(person, photoName)
+
+            person.photoFilenames.push(photoName)
             
             let containername = person.isArchived 
                 ? GetContainer(user, ContainerType.ARCHIVE_FACES)
                 : GetContainer(user, ContainerType.FACES)
-            BlobService.uploadFile(containername, imageBlobPath, localImageFile)
+            BlobService.uploadLocalFile(containername, photoBlobName, localPhotoFile)
         })
 
         person.saveName = personFileSplit[1]
@@ -185,21 +187,21 @@ class Util {
     public async UploadLocalFiles(user: User): Promise<void> {
 
         // Create storate containers
-        let imageContainer = GetContainer(user, ContainerType.FACES)
-        await BlobService.createContainer(imageContainer, false) 
+        let photoContainer = GetContainer(user, ContainerType.FACES)
+        await BlobService.blobCreateContainer(photoContainer, false) 
 
         let dataContainer = GetContainer(user, ContainerType.DATA)
-        await BlobService.createContainer(dataContainer, true) 
+        await BlobService.blobCreateContainer(dataContainer, true) 
 
-        let imageAContainer = GetContainer(user, ContainerType.ARCHIVE_FACES)
-        await BlobService.createContainer(imageAContainer, false) 
+        let photoArchiveContainer = GetContainer(user, ContainerType.ARCHIVE_FACES)
+        await BlobService.blobCreateContainer(photoArchiveContainer, false) 
 
-        let dataAContainer = GetContainer(user, ContainerType.ARCHIVE_DATA)
-        await BlobService.createContainer(dataAContainer, true) 
+        let dataArchiveContainer = GetContainer(user, ContainerType.ARCHIVE_DATA)
+        await BlobService.blobCreateContainer(dataArchiveContainer, true) 
 
         let fileNames = this.walkSync(dataPath, [])   
 
-        let imageFiles: string[] = []
+        let photoFiles: string[] = []
         let personFiles: string[] = []
         for (let i=0;i<fileNames.length;i++) {
             let df = fileNames[i]
@@ -209,12 +211,12 @@ class Util {
                 personFiles.push(df)
             }
             else if (!df.endsWith('pbd')) {
-                imageFiles.push(df)
+                photoFiles.push(df)
             }   
         }
         personFiles.forEach(personFile => {
             try {
-                this.importPersonFile(user, personFile, imageFiles)
+                this.importPersonFile(user, personFile, photoFiles)
             }
             catch (error) {
                 console.log("ERR: "+JSON.stringify(error))
@@ -243,11 +245,27 @@ export function generateGUID(): string {
       return (char === 'x' ? r : (r & 0x3) | 0x8).toString(16)
     })
     return guid
-  }
+}
 
-  
-export function cacheKey(person: Person): string {
+export function getKey(person: Person): string {
     return person.saveName![0].toUpperCase()
 } 
+
+export function getPhotoBlobName(person: Person, photoName: string) {
+    return `${getKey(person)}/${person.saveName}/${photoName}`
+}
+
+export function getNextPhotoName(person: Person): string {
+    let index = 1
+    while (true) {
+        let saveName = `${person.saveName}_${index}.png`
+        if (person.photoFilenames.includes(saveName)) {
+            index = index + 1
+        }
+        else {
+            return saveName
+        }
+    }
+}
 
 export default Util.Instance()

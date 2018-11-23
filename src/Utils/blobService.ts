@@ -8,14 +8,8 @@ import { User } from '../Models/models'
 import { GetContainer, ContainerType } from '../Utils/util'
 import { promisify } from 'util'
 
-const adminContainer = 'admin'
-const userBlob = "users"
-
-interface BlobResult {
-    name: string;
-    containerName: string;
-    metadata?: { [key: string]: string; };
-}
+const ADMIN_CONTAINER = 'admin'
+const USER_BLOB = "users"
 
 export class BlobService {
     private static _instance: BlobService
@@ -37,117 +31,24 @@ export class BlobService {
     }
     
     public async getUsers(): Promise<User[]> {
-        let blobFile = await this.getBlobAsTextAsync(adminContainer, userBlob)
-        if (blobFile) {
-            let users: User[] = JSON.parse(blobFile)
-            return users
+        try {
+            let blobFile = await this.blobGetAsText(ADMIN_CONTAINER, USER_BLOB)
+            if (blobFile) {
+                let users: User[] = JSON.parse(blobFile)
+                return users
+            }
+            return []
         }
-        return []
+        catch (error) {
+            // TODO - error message of some kind?  Or pass up
+            return []
+        }
     }
 
     public async updateUsers(users: User[]): Promise<void> {
-        await this.uploadText(adminContainer, userBlob, JSON.stringify(users))
+        await this.blobUploadText(ADMIN_CONTAINER, USER_BLOB, JSON.stringify(users))
     }
 
-    public async createContainer(containerName: string, isPrivate: boolean) {
-
-        let createContainerIfNotExists = promisify(this._blobService.createContainerIfNotExists).bind(this._blobService)
-        
-        await createContainerIfNotExists(containerName, 
-            {
-            publicAccessLevel: isPrivate ? null : 'blob'
-          })
-    }
-
-/*
-    private static aggregateBlobs(err, result, cb) {
-        if (err) {
-            cb(er);
-        } else {
-            blobs = blobs.concat(result.entries);
-            if (result.continuationToken !== null) {
-                blobService.listBlobsSegmented(
-                    containerName,
-                    result.continuationToken,
-                    aggregateBlobs);
-            } else {
-                cb(null, blobs);
-            }
-        }
-    }*/
-    
-    public async getPeopleStartingWith(user: User, letter: string): Promise<Person[]> {
-        let containerName = GetContainer(user, ContainerType.DATA)
-        let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmentedWithPrefix).bind(this._blobService)
-        let peopleBlobs: BlobResult[] = []
-        try {
-            peopleBlobs = (await listBlobsSegmentedAsync(containerName, letter, null as any)).entries
-        }
-        catch (err) {
-            // TODO: allow throw and catch it
-            console.log("ERR: "+JSON.stringify(err))
-        }
-
-        let people: Person[] = []
-        for (let blobInfo of peopleBlobs) {
-            let blobFile = await this.getBlobAsTextAsync(containerName, blobInfo.name)
-            if (blobFile) {
-                let person = JSON.parse(blobFile)
-                // Backward compatibility
-                delete person.fullName
-                people.push(person)
-            }
-        }
-        console.log(`Library loaded ${letter}`)
-        return people
-    }
-
-    // NOT CURRENTLY USED
-    public async getPeopleAsync(user: User): Promise<Person[]> {
-        let containerName = GetContainer(user, ContainerType.DATA)
-        let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmented).bind(this._blobService)
-        let peopleBlobs: BlobResult[] = []
-        try {
-            peopleBlobs = (await listBlobsSegmentedAsync(containerName, null as any)).entries
-        }
-        catch (err) {
-            console.log("ERR: "+JSON.stringify(err))
-        }
-
-        let people: Person[] = []
-        for (let blobInfo of peopleBlobs) {
-            let blobFile = await this.getBlobAsTextAsync(containerName, blobInfo.name)
-            if (blobFile) {
-                let person = JSON.parse(blobFile)
-                // Backward compatibility
-                delete person.fullName
-                people.push(person)
-            }
-            if (people.length > 20) return people // LARS DEV  TEMP
-        }
-        console.log("Library loaded...")
-        return people
-    }
-
-  
-    public async getBlobAsTextAsync(containerName: string, blobName: string) {
-        const getBlobToTextAsync = promisify(this._blobService.getBlobToText).bind(this._blobService)
-
-        try {
-            return await getBlobToTextAsync(containerName, blobName)
-        }
-        catch (err) {
-            console.log("ERR: "+JSON.stringify(err))
-        }
-    }
-
-    public async uploadText(containerName: string, blobName: string, text: string) {
-        console.log(`Upload: ${containerName}: ${blobName}`)
-
-        const createBlockBlobFromText = promisify(this._blobService.createBlockBlobFromText).bind(this._blobService)
-        await createBlockBlobFromText(containerName, blobName, text)
-    }
-    
     public async uploadPerson(user: User, person: Person): Promise<void> {
         // Upload the person file
         let dataContainerName = person.isArchived 
@@ -156,7 +57,7 @@ export class BlobService {
 
         const savePrefix = person.saveName[0].toUpperCase()
         let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
-        await this.uploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+        await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }
 
     public async deletePerson(user: User, person: Person): Promise<void> {
@@ -170,8 +71,17 @@ export class BlobService {
 
         const savePrefix = person.saveName[0].toUpperCase()
         let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
-        promises.push(this.deleteBlob(dataContainerName, dataBlobPath))
+        promises.push(this.blobDelete(dataContainerName, dataBlobPath))
         await Promise.all(promises)
+    }
+
+    public async deletePhoto(user: User, person: Person, blobName: string): Promise<void> {
+
+        let faceContainerName = person.isArchived 
+                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
+                : GetContainer(user, ContainerType.FACES)
+
+        await this.blobDelete(faceContainerName, blobName)
     }
 
     public deletePhotos(user: User, person: Person): Promise<void>[] {
@@ -181,32 +91,97 @@ export class BlobService {
 
         let promises: Promise<void>[] = []
         person.photoFilenames.forEach(blob =>
-            promises.push(this.deleteBlob(faceContainerName, blob))
+            promises.push(this.blobDelete(faceContainerName, blob))
         )  
         return promises
     }
+    
+    public async getPeopleStartingWith(user: User, letter: string): Promise<Person[]> {
 
-    public async deleteBlob(containerName: string, blobName: string) {
-        let deleteBlobAsync = promisify(this._blobService.deleteBlob).bind(this._blobService)
+        let containerName = GetContainer(user, ContainerType.DATA)
+        let peopleBlobs = await this.blobListWithPrefix(containerName, letter)
+
+        let people: Person[] = []
+        for (let blobInfo of peopleBlobs) {
+            let blobFile = await this.blobGetAsText(containerName, blobInfo.name)
+            if (blobFile) {
+                let person = JSON.parse(blobFile)
+                // Backward compatibility LARS remove
+                delete person.fullName
+                people.push(person)
+            }
+        }
+        console.log(`Library loaded ${letter}`)
+        return people
+    }
+
+    public async uploadPhoto(user: User, person: Person, blobName: string, photoData: string) {
+
+        let faceContainerName = person.isArchived 
+                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
+                : GetContainer(user, ContainerType.FACES)
+
+        let matches = photoData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        let type = matches![1];
+        let buffer = new Buffer(matches![2], 'base64');
+
+        const options: azure.BlobService.CreateBlobRequestOptions = {
+            contentSettings: {contentType:type}
+        }
+        await this.blobUploadText(faceContainerName, blobName, buffer, options)
+    }
+
+    public async uploadLocalFile(containerName: string, blobName: string, localFileName: string) {
+        let blobData = await this.blobDoesExist(containerName, blobName)
+        if (blobData.exists) {
+            console.log(`ALREADY EXISTS: ${localFileName}`)
+            return
+        }
+        await this.blobCreateFromLocalFile(containerName, blobName, localFileName)
+    }
+  
+    public async blobGetAsText(containerName: string, blobName: string) {
+        const getBlobToTextAsync = promisify(this._blobService.getBlobToText).bind(this._blobService)
+        return await getBlobToTextAsync(containerName, blobName)
+    }
+
+    public async blobUploadStream(containerName: string, blobName: string, stream: any): Promise<void> {
+        let createBlockBlobFromStreamAsync = promisify(this._blobService.createBlockBlobFromStream).bind(this._blobService)
+        await createBlockBlobFromStreamAsync(containerName, blobName, stream)
+    }
+
+    public async blobUploadText(containerName: string, blobName: string, text: string | Buffer, options: azure.BlobService.CreateBlobRequestOptions = {}) {
+
+        const createBlockBlobFromText = promisify(this._blobService.createBlockBlobFromText).bind(this._blobService)
+        await createBlockBlobFromText(containerName, blobName, text, options)
+    }
+
+    public async blobDelete(containerName: string, blobName: string) {
+        let deleteBlobAsync = promisify(this._blobService.deleteBlobIfExists).bind(this._blobService)
         await deleteBlobAsync(containerName, blobName)
     }
 
-    public async uploadFile(containerName: string, blobName: string, localFileName: string) {
+    public async blobListWithPrefix(containerName: string, letter: string) {
+        let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmentedWithPrefix).bind(this._blobService)
+        return (await listBlobsSegmentedAsync(containerName, letter, null as any)).entries
+    }
+
+    public async blobDoesExist(containerName: string, blobName: string) {
         let doesBlobExistAsync = promisify(this._blobService.doesBlobExist).bind(this._blobService)
-        let blobData = await doesBlobExistAsync(containerName, blobName)
-        if (blobData.exists) {
-            console.log(`EXISTS: ${localFileName}`)
-            return
-        }
-        this._blobService.createBlockBlobFromLocalFile(containerName, blobName, localFileName, 
-        (error, result, response) => {
-            if (error) {
-                console.log(`!!!!!: ${localFileName} ${JSON.stringify(error)}`)
-            }
-            else {
-                console.log(`SAVED: ${localFileName} ${JSON.stringify(error)}`)
-            }
+        return await doesBlobExistAsync(containerName, blobName)
+    }
+ 
+    public async blobCreateContainer(containerName: string, isPrivate: boolean) {
+        let createContainerIfNotExists = promisify(this._blobService.createContainerIfNotExists).bind(this._blobService)
+        await createContainerIfNotExists(containerName, 
+            {
+            publicAccessLevel: isPrivate ? null : 'blob'
           })
+    }
+
+    public async blobCreateFromLocalFile(containerName: string, blobName: string, localFileName: string) {
+        let createBlockBlobFromLocalFileAsync = promisify(this._blobService.createBlockBlobFromLocalFile).bind(this._blobService)
+        return await createBlockBlobFromLocalFileAsync(containerName, blobName, localFileName)
     }
 }
 

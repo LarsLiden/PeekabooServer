@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as express from 'express';
-import util from "./Utils/util";
+import util, { GetContainer, ContainerType } from "./Utils/util";
 import * as bodyParser from 'body-parser'
 import { Person } from './Models/person'
 import { User } from './Models/models'
@@ -14,7 +14,9 @@ import * as cors from 'cors'
 var app = express()
 app.use(cors())
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({
+  limit: '10mb'
+}));
 var port = process.env.PORT || 8080;    
 app.listen(port, () => {
   console.log('We are live on ' + port);
@@ -31,16 +33,10 @@ app.post('/api/login', async function(req, res, next) {
     const user: User = req.body.user
 
     let foundUser = await DataProvider.getUser(user)
-    let sendUser = {...foundUser}
+    let sendUser: any = {...foundUser}
     delete sendUser.containerid
+    sendUser.photoContainerId = GetContainer(foundUser, ContainerType.FACES)
     res.send(sendUser)
-    /*
-    if (user.name === "Lars Liden") {
-      res.send(StartState.READY)
-    }
-    else {
-      res.send(StartState.INVALID)
-    }*/
   } catch (error) {
     res.sendStatus(500)
   }
@@ -131,10 +127,10 @@ app.delete('/api/person/:key/:personGUID', async function(req, res, next) {
   }
 })
 
-app.put('/api/person/:personGUID/image', async function(req, res, next) {
+app.put('/api/person/:key/:personGUID/photo', async function(req, res, next) {
   try {
-    const jsonImage: string = req.body.image
-    const { personGUID } = req.params
+    const imageData: string = req.body.photo
+    const { personGUID, key } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -145,9 +141,27 @@ app.put('/api/person/:personGUID/image', async function(req, res, next) {
       res.sendStatus(400)
       return
     }
+    let photoName = await DataProvider.putPhoto(user, key, personGUID, imageData)
+    res.send(photoName)
+  } catch (error) {
+    res.sendStatus(500)
+  }
+})
 
-    let buffer = Buffer.from(JSON.parse(jsonImage));
-    await DataProvider.putPersonImage(user, personGUID, buffer)
+app.delete('/api/person/:key/:personGUID/photo/:name', async function(req, res, next) {
+  try {
+    const { key, personGUID, name } = req.params
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    await DataProvider.deletePhoto(user, key, personGUID, name)
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)
