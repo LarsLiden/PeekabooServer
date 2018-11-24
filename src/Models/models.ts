@@ -10,13 +10,6 @@ export enum PerfType
     ALPHA = "ALPHA"
 }
 
-export interface User {
-    name: string,
-    id: string,
-    email: string,
-    hwmid: string,
-    containerid: string
-}
 
 export interface Tag {
     name: string

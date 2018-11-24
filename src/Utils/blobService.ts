@@ -4,7 +4,7 @@
  */
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
-import { User } from '../Models/models'
+import { User } from '../Models/user'
 import { GetContainer, ContainerType } from '../Utils/util'
 import { promisify } from 'util'
 
@@ -78,16 +78,16 @@ export class BlobService {
     public async deletePhoto(user: User, person: Person, blobName: string): Promise<void> {
 
         let faceContainerName = person.isArchived 
-                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
-                : GetContainer(user, ContainerType.FACES)
+                ? GetContainer(user, ContainerType.ARCHIVE_PHOTOS)
+                : GetContainer(user, ContainerType.PHOTOS)
 
         await this.blobDelete(faceContainerName, blobName)
     }
 
     public deletePhotos(user: User, person: Person): Promise<void>[] {
         let faceContainerName = person.isArchived 
-                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
-                : GetContainer(user, ContainerType.FACES)
+                ? GetContainer(user, ContainerType.ARCHIVE_PHOTOS)
+                : GetContainer(user, ContainerType.PHOTOS)
 
         let promises: Promise<void>[] = []
         person.photoFilenames.forEach(blob =>
@@ -118,8 +118,8 @@ export class BlobService {
     public async uploadPhoto(user: User, person: Person, blobName: string, photoData: string) {
 
         let faceContainerName = person.isArchived 
-                ? GetContainer(user, ContainerType.ARCHIVE_FACES)
-                : GetContainer(user, ContainerType.FACES)
+                ? GetContainer(user, ContainerType.ARCHIVE_PHOTOS)
+                : GetContainer(user, ContainerType.PHOTOS)
 
         let matches = photoData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
         let type = matches![1];
@@ -171,6 +171,11 @@ export class BlobService {
         return await doesBlobExistAsync(containerName, blobName)
     }
  
+    public async blobDeleteContainer(containerName: string) {
+        let deleteContainerAsync = promisify(this._blobService.deleteContainerIfExists).bind(this._blobService)
+        await deleteContainerAsync(containerName)
+    }
+
     public async blobCreateContainer(containerName: string, isPrivate: boolean) {
         let createContainerIfNotExists = promisify(this._blobService.createContainerIfNotExists).bind(this._blobService)
         await createContainerIfNotExists(containerName, 

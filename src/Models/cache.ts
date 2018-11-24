@@ -1,17 +1,20 @@
+/**
+ * Copyright (c) Lars Liden. All rights reserved.  
+ * Licensed under the MIT License.
+ */
 export interface CacheItem {
     key: string
     value: any
     timestamp: number
 }
 
-
-/**
- * Copyright (c) Lars Liden. All rights reserved.  
- * Licensed under the MIT License.
- */
 export class Cache {
     static cacheItems: CacheItem[] = []
 
+    public static ClearAll() {
+        this.cacheItems = []
+    }
+    
     public static Invalidate(rawkey: string) {
         const key = rawkey.toUpperCase()
         this.cacheItems = this.cacheItems.filter(i => i.key !== key)

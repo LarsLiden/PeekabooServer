@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import { Person } from './Models/person'
-import { User } from './Models/models'
+import { User } from './Models/user'
 import { cacheKeyFromUser, getPhotoBlobName } from './Utils/util'
 import { generateGUID, GetContainer, ContainerType, getNextPhotoName, cacheKey } from './Utils/util'
 import { TestResult } from './Models/performance'
@@ -39,23 +39,40 @@ class DataProvider {
         return this.users.find(u => u.hwmid === hwmid)
     }
 
+    public async deleteUser(containerId: string): Promise<void> {
+        await BlobService.blobDeleteContainer(`${ContainerType.PHOTOS}${containerId}`)
+        await BlobService.blobDeleteContainer(`${ContainerType.DATA}${containerId}`)
+        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_DATA}${containerId}`)
+        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_PHOTOS}${containerId}`)
+    }
+
     public async getUser(user: User): Promise<User> {
         if (!this.users) {
             this.users = await BlobService.getUsers()
         }
-        let foundUser = this.users.find(u => u.id === user.id)
+
+        await this.deleteUser("7649fe4d-a358-43e5-8a87-ee4444e96cdb")
+
+        // TODO: validate client
+        let foundUser = this.users.find(u => u.googleId === user.googleId)
 
         if (foundUser) {
+            foundUser.lastUsedDatTime = new Date().toJSON()
+            let users = this.users.filter(u => u.googleId != user.googleId)
+            users.push(foundUser)
+            BlobService.updateUsers(this.users)
             return foundUser
         }
         // Add a new user
         user.hwmid = generateGUID()
-        user.containerid = generateGUID()
+        user.containerId = generateGUID()
+        user.createdDateTime = new Date().toJSON()
+        user.lastUsedDatTime = new Date().toJSON()
         this.users.push(user)
         BlobService.updateUsers(this.users)
 
         // Create storate containers
-        let photoContainer = GetContainer(user, ContainerType.FACES)
+        let photoContainer = GetContainer(user, ContainerType.PHOTOS)
         await BlobService.blobCreateContainer(photoContainer, false) 
 
         let dataContainer = GetContainer(user, ContainerType.DATA)

@@ -3,10 +3,10 @@
  * Licensed under the MIT License.
  */
 import * as express from 'express';
-import util, { GetContainer, ContainerType } from "./Utils/util";
+import util from "./Utils/util";
 import * as bodyParser from 'body-parser'
 import { Person } from './Models/person'
-import { User } from './Models/models'
+import { User, toClientUser} from './Models/user'
 import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
 import * as cors from 'cors'
@@ -33,10 +33,9 @@ app.post('/api/login', async function(req, res, next) {
     const user: User = req.body.user
 
     let foundUser = await DataProvider.getUser(user)
-    let sendUser: any = {...foundUser}
-    delete sendUser.containerid
-    sendUser.photoContainerId = GetContainer(foundUser, ContainerType.FACES)
-    res.send(sendUser)
+
+    let clientUser = toClientUser(foundUser)
+    res.send(clientUser)
   } catch (error) {
     res.sendStatus(500)
   }
