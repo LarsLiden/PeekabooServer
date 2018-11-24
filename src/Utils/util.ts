@@ -247,12 +247,20 @@ export function generateGUID(): string {
     return guid
 }
 
-export function getKey(person: Person): string {
+export function cacheKey(user: User, letter: string): string {
+    return `${letter}_${user.containerid}`
+} 
+
+export function cacheKeyFromUser(user: User, person: Person): string {
+    return `${personKey(person)}_${user.containerid}`
+} 
+
+export function personKey(person: Person): string {
     return person.saveName![0].toUpperCase()
 } 
 
 export function getPhotoBlobName(person: Person, photoName: string) {
-    return `${getKey(person)}/${person.saveName}/${photoName}`
+    return `${personKey(person)}/${person.saveName}/${photoName}`
 }
 
 export function getNextPhotoName(person: Person): string {

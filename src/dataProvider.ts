@@ -4,8 +4,8 @@
  */
 import { Person } from './Models/person'
 import { User } from './Models/models'
-import { getKey, getPhotoBlobName } from './Utils/util'
-import { generateGUID, GetContainer, ContainerType, getNextPhotoName } from './Utils/util'
+import { cacheKeyFromUser, getPhotoBlobName } from './Utils/util'
+import { generateGUID, GetContainer, ContainerType, getNextPhotoName, cacheKey } from './Utils/util'
 import { TestResult } from './Models/performance'
 import { Cache } from './Models/cache'
 import BlobService from './Utils/blobService'
@@ -64,10 +64,11 @@ class DataProvider {
     }
 
     public async getPeopleStartingWith(user: User, letter: string) {
-        let people: Person[] = Cache.Get(letter)
+        let cKey = cacheKey(user, letter)
+        let people: Person[] = Cache.Get(cKey)
         if (!people) {
             people = await BlobService.getPeopleStartingWith(user, letter)
-            Cache.Set(letter, people)
+            Cache.Set(cKey, people)
         }
         return people
     }
@@ -106,7 +107,8 @@ class DataProvider {
 
     public async deletePerson(user: User, key: string, personGUID: string) : Promise<void>
     {
-        let people: Person[] = Cache.Get(key)
+        let cKey = cacheKey(user, key)
+        let people: Person[] = Cache.Get(cKey)
         // If not in cache load
         if (!people) {
             people = await this.getPeopleStartingWith(user, key)
@@ -124,7 +126,8 @@ class DataProvider {
 
     public async putPhoto(user: User, key: string, personGUID: string, photoData: string) : Promise<string>
     {
-        let people: Person[] = Cache.Get(key)
+        let cKey = cacheKey(user, key)
+        let people: Person[] = Cache.Get(cKey)
         // If not in cache load
         if (!people) {
             people = await this.getPeopleStartingWith(user, key)
@@ -158,7 +161,8 @@ class DataProvider {
 
     public async deletePhoto(user: User, key: string, personGUID: string, photoName: string) : Promise<void>
     {
-        let people: Person[] = Cache.Get(key)
+        let cKey = cacheKey(user, key)
+        let people: Person[] = Cache.Get(cKey)
         // If not in cache load
         if (!people) {
             people = await this.getPeopleStartingWith(user, key)
@@ -186,21 +190,21 @@ class DataProvider {
     }
 
     public cacheReplacePerson(user: User, person: Person) : void {
-        const key = getKey(person)
-        let peopleCache: Person[] = Cache.Get(key)
+        const cKey = cacheKeyFromUser(user, person)
+        let peopleCache: Person[] = Cache.Get(cKey)
         if (peopleCache) {
             peopleCache = peopleCache.filter(p => p.guid !== person.guid)
             peopleCache.push(person)
-            Cache.Set(key, peopleCache)
+            Cache.Set(cKey, peopleCache)
         }
     }
 
     public cacheDeletePerson(user: User, person: Person) : void {
-        const key = getKey(person)
-        let peopleCache: Person[] = Cache.Get(key)
+        const cKey = cacheKeyFromUser(user, person)
+        let peopleCache: Person[] = Cache.Get(cKey)
         if (peopleCache) {
             peopleCache = peopleCache.filter(p => p.guid !== person.guid)
-            Cache.Set(key, peopleCache)
+            Cache.Set(cKey, peopleCache)
         }
     }
 }
