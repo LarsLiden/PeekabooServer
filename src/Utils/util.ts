@@ -92,7 +92,7 @@ class Util {
 
         let relationships = rawPerson._relationships.map((r: any) => {
             return {
-                guid: r._guid,
+                personId: r._guid,
                 type: RelationshipType.getRelationshipType(r._type._name)
             } as Relationship
         })
