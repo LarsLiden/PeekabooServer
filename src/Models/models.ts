@@ -23,7 +23,8 @@ export interface Filter {
 }
 
 export interface Event {
-    date: string
+    id: string
+    date?: string
     description: string
     location: string
 }

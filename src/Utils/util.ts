@@ -99,7 +99,8 @@ class Util {
 
         let events = rawPerson._events.map((e: any) => {
             return {
-                date: e.Date,
+                id: generateGUID(),
+                date: e.Date,  // LARS todo translate this
                 description: e.Description,
                 location: e.Location
             } as Event
