@@ -147,7 +147,7 @@ class Util {
         return person
     }
 
-    private importPersonFile(user: User, personFile: string, imageFiles: string[]): void {
+    private importPersonFile(user: User, personFile: string, imageFiles: string[]): Person {
        
         // Get name from person file
         let cutPos = dataPath.length + 1
@@ -178,12 +178,43 @@ class Util {
                 ? GetContainer(user, ContainerType.ARCHIVE_PHOTOS)
                 : GetContainer(user, ContainerType.PHOTOS)
             BlobService.uploadLocalFile(containername, photoBlobName, localPhotoFile)
+            
         })
 
         person.saveName = personFileSplit[1]
 
-        // Upload the person file (don't await)
-        BlobService.uploadPerson(user, person)
+        return person
+    }
+
+    public connectRelationships(people: Person[]) {
+        people.forEach(person => {
+            person.relationships.forEach(relationship => {
+                if (!relationship.id) {
+                    let id = generateGUID()
+                    relationship.id = id
+                    // Find reverse relationship
+                    let partner = people.find(p => p.guid === relationship.personId)
+                    if (partner) {
+                        let reverse = partner.relationships.find(r => r.personId === person.guid)
+                        if (reverse) {
+                            reverse.id = id
+                        }
+                        else {
+                            console.log(`making: ${person.firstName} ${person.lastName} ${relationship.type.from} ${partner.firstName} ${partner.lastName} `)
+                            let reverseRelationship: Relationship =  {
+                                id: relationship.id,
+                                personId: person.guid,
+                                type: RelationshipType.getRelationshipType(relationship.type.to)
+                            }
+                            partner.relationships.push(reverseRelationship)
+                        }
+                    }
+                    else {
+                        console.log(`!!!! Connect: Missing person: ${person.firstName} ${person.lastName}`)
+                    }
+                }
+            })
+        })
     }
 
     public async UploadLocalFiles(user: User): Promise<void> {
@@ -219,16 +250,24 @@ class Util {
         }
         let temp = 0
 
+        let people: Person[] = []
         personFiles.forEach(personFile => {
             temp = temp + 1
             if (temp < 20) {
             try {
-                this.importPersonFile(user, personFile, photoFiles)
+                people.push(this.importPersonFile(user, personFile, photoFiles))
             }
             catch (error) {
                 console.log("ERR: "+JSON.stringify(error))
             }
         }
+        })
+
+        this.connectRelationships(people)
+
+        people.forEach(person => {
+            // Upload the person file (don't await)
+            BlobService.uploadPerson(user, person)
         })
         console.log("DONE!")
     }
