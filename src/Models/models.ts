@@ -41,6 +41,7 @@ export enum SocialNetType
 }
 
 export interface SocialNet {
+    id: string
     URL: string
     profileID: string
     netType: SocialNetType

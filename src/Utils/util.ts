@@ -12,6 +12,9 @@ import { Event, SocialNetType, SocialNet } from '../Models/models'
 import { User } from '../Models/user'
 import BlobService from './blobService'
 
+const MAX_UPLOAD = 50
+const NO_UPLOAD = false
+
 const dataPath = path.join(process.cwd(), './data')
 class Util {
 
@@ -98,9 +101,10 @@ class Util {
         })
 
         let events = rawPerson._events.map((e: any) => {
+            let date = new Date(e.Date) 
             return {
                 id: generateGUID(),
-                date: e.Date,  // LARS todo translate this
+                date: date.toJSON(),  
                 description: e.Description,
                 location: e.Location
             } as Event
@@ -108,6 +112,7 @@ class Util {
         
         let socialNets = rawPerson._socialNets.map((sn: any) => {
             return {
+                id: generateGUID(),
                 URL: sn.URL,
                 profileID: sn.profileId,
                 netType: sn.netType === 0 ? SocialNetType.LINKEDIN : SocialNetType.FACEBOOK
@@ -178,8 +183,10 @@ class Util {
             let containername = person.isArchived 
                 ? GetContainer(user, ContainerType.ARCHIVE_PHOTOS)
                 : GetContainer(user, ContainerType.PHOTOS)
-            BlobService.uploadLocalFile(containername, photoBlobName, localPhotoFile)
-            
+
+            if (!NO_UPLOAD) {
+                BlobService.uploadLocalFile(containername, photoBlobName, localPhotoFile)
+            }
         })
 
         person.saveName = personFileSplit[1]
@@ -254,7 +261,7 @@ class Util {
         let people: Person[] = []
         personFiles.forEach(personFile => {
             temp = temp + 1
-            if (temp < 20) {
+            if (temp < MAX_UPLOAD) {
             try {
                 people.push(this.importPersonFile(user, personFile, photoFiles))
             }
@@ -268,7 +275,9 @@ class Util {
 
         people.forEach(person => {
             // Upload the person file (don't await)
-            BlobService.uploadPerson(user, person)
+            if (!NO_UPLOAD) {
+                BlobService.uploadPerson(user, person)
+            }
         })
         console.log("DONE!")
     }
