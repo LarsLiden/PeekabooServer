@@ -50,8 +50,8 @@ class DataProvider {
             this.users = await BlobService.getUsers()
         }
 
-        await this.deleteUser("177889bb-72fd-4bf1-b569-a3240fe261c3")
-        await this.deleteUser("c48d3a73-b0af-4801-bdfc-4ceadc957102")
+        await this.deleteUser("06c44648-70e6-4d35-9ca5-2be34bf06ccc")
+        await this.deleteUser("f27afe7c-7cfa-4610-93df-8a01216652fd")
 
         // TODO: validate client
         let foundUser = this.users.find(u => u.googleId === user.googleId)

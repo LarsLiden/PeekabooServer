@@ -117,6 +117,12 @@ export class BlobService {
     public async getPeopleStartingWith(user: User, letter: string): Promise<Person[]> {
 
         let containerName = GetContainer(user, ContainerType.DATA)
+
+        let containerExists = await this.blobDoesContainerExist(containerName)
+        if (!containerExists) {
+            return []
+        }
+ 
         let peopleBlobs = await this.blobListWithPrefix(containerName, letter)
 
         let people: Person[] = []
@@ -175,6 +181,11 @@ export class BlobService {
     public async blobDelete(containerName: string, blobName: string) {
         let deleteBlobAsync = promisify(this._blobService.deleteBlobIfExists).bind(this._blobService)
         await deleteBlobAsync(containerName, blobName)
+    }
+
+    public async blobDoesContainerExist(containerName: string): Promise<boolean> {
+        let doesContainerExistAsync = promisify(this._blobService.doesContainerExist).bind(this._blobService)
+        return (await doesContainerExistAsync(containerName, null as any)).exists
     }
 
     public async blobListWithPrefix(containerName: string, letter: string) {

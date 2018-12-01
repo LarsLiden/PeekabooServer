@@ -188,9 +188,6 @@ class Util {
                 BlobService.uploadLocalFile(containername, photoBlobName, localPhotoFile)
             }
         })
-
-        person.saveName = personFileSplit[1]
-
         return person
     }
 
