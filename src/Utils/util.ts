@@ -120,6 +120,7 @@ class Util {
         })
 
         let person = {
+            guid: rawPerson.MyGuid,
             photoFilenames: rawPerson._photoFNs,
             tags: rawPerson._tags,
             keyValues,
@@ -131,7 +132,6 @@ class Util {
             relationships,
             nickName: rawPerson.NickName,
             maidenName: rawPerson.MaidenName,
-            guid: rawPerson.MyGuid,
             isArchived: rawPerson.IsArchived,
             firstName: rawPerson.FirstName,
             lastName: rawPerson.LastName,
@@ -312,8 +312,11 @@ export function cacheKeyFromUser(user: User, person: Person): string {
     return `${personKey(person)}_${user.containerId}`
 } 
 
+export function keyFromSaveName(saveName: string): string {
+    return saveName![0].toUpperCase()
+}
 export function personKey(person: Person): string {
-    return person.saveName![0].toUpperCase()
+    return keyFromSaveName(person.saveName)
 } 
 
 export function getPhotoBlobName(person: Person, photoName: string) {

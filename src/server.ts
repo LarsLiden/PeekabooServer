@@ -54,8 +54,8 @@ app.post('/api/testresults', async function(req, res, next) {
       res.sendStatus(400)
       return
     }
-    DataProvider.postTestResults(user, testResults)
-    res.sendStatus(200)
+    let people = await DataProvider.postTestResults(user, testResults)
+    res.send(people)
   } catch (error) {
     res.sendStatus(500)
   }
@@ -80,6 +80,28 @@ app.get('/api/people/:letter', async function(req, res, next) {
     
   } catch (error) {
     res.sendStatus(500)
+  }
+})
+
+// NOTE: Not currently used
+app.get('/api/person/:key/:personGUID', async function(req, res, next) {
+  try {
+    const { personGUID, key } = req.params
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    let person = await DataProvider.getPerson(user, key, personGUID)
+    res.send(person)
+
+  } catch (error) {
+    res.sendStatus(400)
   }
 })
 

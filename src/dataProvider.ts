@@ -4,9 +4,8 @@
  */
 import { Person } from './Models/person'
 import { User } from './Models/user'
-import { cacheKeyFromUser, getPhotoBlobName } from './Utils/util'
-import { generateGUID, GetContainer, ContainerType, getNextPhotoName, cacheKey } from './Utils/util'
-import { TestResult } from './Models/performance'
+import { generateGUID, GetContainer, ContainerType, getNextPhotoName, cacheKey, keyFromSaveName, cacheKeyFromUser, getPhotoBlobName } from './Utils/util'
+import { TestResult, addResult} from './Models/performance'
 import { Cache } from './Models/cache'
 import BlobService from './Utils/blobService'
 
@@ -91,20 +90,18 @@ class DataProvider {
         return people
     }
 
-    public postTestResults(user: User, testResults: TestResult[]) : void
+    public async postTestResults(user: User, testResults: TestResult[]) : Promise<Person[]>
     {
-        // LARS TODO
-        /*
         // Generate list of changed people
         let changedPeople: Person[] = []
         for (const testResult of testResults) {
             // Add copy if haven't already added
             if (!changedPeople.find(p => p.guid === testResult.guid)) {
-                let foundPerson = this.getPerson(testResult.guid)
-                if (!foundPerson) {
-                    throw new Error("Can't find person")
+                let existingPerson = await this.getPerson(user, testResult.saveName, testResult.guid)
+                if (!existingPerson) {
+                    throw Error("Unknown Person")
                 }
-                let personCopy = new Person(foundPerson)
+                let personCopy = {...existingPerson}
                 changedPeople.push(personCopy)
             }
         }
@@ -114,13 +111,32 @@ class DataProvider {
             let editPerson = changedPeople.find(p => p.guid === testResult.guid)      
             
             // TODO: cover all perf types
-            editPerson!.photoPerformance.AddResult(testResult.result)
+            addResult(editPerson!.photoPerformance, testResult.result)
         }
 
         // Now save changed people
         for (const person of changedPeople) {
-            BlobService.uploadPerson(person)
-        }*/
+            await BlobService.uploadPerson(user, person) 
+            // Update cache
+            this.cacheReplacePerson(user, person)
+        }
+        return changedPeople
+    }
+
+    public async getPerson(user: User, saveName: string, guid: string): Promise<Person | null> {
+
+        // First look in cache
+        let key = keyFromSaveName(saveName)
+        let cKey = cacheKey(user, key)
+        let people: Person[] = Cache.Get(cKey)
+        if (people) {
+            let person = people.find(p => p.guid === guid)
+            if (person) {
+                return person
+            }
+        }
+        // Otherwise load it
+        return await BlobService.getPerson(user, saveName, guid)
     }
 
     public async deletePerson(user: User, key: string, personGUID: string) : Promise<void>

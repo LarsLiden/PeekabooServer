@@ -60,6 +60,24 @@ export class BlobService {
         await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }
 
+    public async getPerson(user: User, saveName: string, guid: string): Promise<Person | null> {
+        // Upload the person file
+        let dataContainerName = GetContainer(user, ContainerType.DATA)
+
+        const savePrefix = saveName[0].toUpperCase()
+        let dataBlobPath = savePrefix +'\\' + saveName +'.json'
+
+        let blobFile = await this.blobGetAsText(dataContainerName, dataBlobPath)
+        if (blobFile) {
+            let person: Person = JSON.parse(blobFile)
+            if (person.guid !== guid) {
+                throw new Error("Person GUID invalid")
+            }
+            return person
+        }
+        return null
+     }
+
     public async deletePerson(user: User, person: Person): Promise<void> {
 
         // Delete photos first
@@ -106,8 +124,6 @@ export class BlobService {
             let blobFile = await this.blobGetAsText(containerName, blobInfo.name)
             if (blobFile) {
                 let person = JSON.parse(blobFile)
-                // Backward compatibility LARS remove
-                delete person.fullName
                 people.push(person)
             }
         }
