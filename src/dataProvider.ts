@@ -90,6 +90,16 @@ class DataProvider {
         return people
     }
 
+    public async getUsers(user: User): Promise<User[]> {
+        if (!user.isAdmin) {
+            throw Error("Permission Denied")
+        }
+        if (!this.users) {
+            this.users = await BlobService.getUsers()
+        }
+        return this.users
+    }
+
     public async postTestResults(user: User, testResults: TestResult[]) : Promise<Person[]>
     {
         // Generate list of changed people

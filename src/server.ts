@@ -61,6 +61,29 @@ app.post('/api/testresults', async function(req, res, next) {
   }
 })
 
+app.get('/api/users', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    if (!user.isAdmin) {
+      res.sendStatus(401)
+      return
+    }
+    let users = await DataProvider.getUsers(user)
+    res.send(users)
+  } catch (error) {
+    res.sendStatus(500)
+  }
+})
+
 
 app.get('/api/people/:letter', async function(req, res, next) {
   try {
