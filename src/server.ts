@@ -84,6 +84,37 @@ app.get('/api/users', async function(req, res, next) {
   }
 })
 
+app.delete('/api/user/:deleteId', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    if (!user.isAdmin) {
+      res.sendStatus(401)
+      return
+    }
+
+    const { deleteId } = req.params
+    if (deleteId === hwmid) {
+      res.sendStatus(401)
+      return
+    }
+    
+    await DataProvider.deleteUser(user, deleteId)
+    res.sendStatus(200)
+  } catch (error) {
+    res.sendStatus(500)
+  }
+})
+
+
 
 app.get('/api/people/:letter', async function(req, res, next) {
   try {

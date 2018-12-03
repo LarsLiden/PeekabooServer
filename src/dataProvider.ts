@@ -38,20 +38,10 @@ class DataProvider {
         return this.users.find(u => u.hwmid === hwmid)
     }
 
-    public async deleteUser(containerId: string): Promise<void> {
-        await BlobService.blobDeleteContainer(`${ContainerType.PHOTOS}${containerId}`)
-        await BlobService.blobDeleteContainer(`${ContainerType.DATA}${containerId}`)
-        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_DATA}${containerId}`)
-        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_PHOTOS}${containerId}`)
-    }
-
     public async getUser(user: User): Promise<User> {
         if (!this.users) {
             this.users = await BlobService.getUsers()
         }
-
-        await this.deleteUser("06c44648-70e6-4d35-9ca5-2be34bf06ccc")
-        await this.deleteUser("f27afe7c-7cfa-4610-93df-8a01216652fd")
 
         // TODO: validate client
         let foundUser = this.users.find(u => u.googleId === user.googleId)
@@ -98,6 +88,31 @@ class DataProvider {
             this.users = await BlobService.getUsers()
         }
         return this.users
+    }
+
+    public async deleteUser(user: User, deleteId: string): Promise<void> {
+        if (!user.isAdmin || deleteId === user.hwmid) {
+            throw Error("Permission Denied")
+        }
+
+        const deleteUser = await this.userFromId(deleteId)
+        if (!deleteUser) {
+            throw Error("No such user")
+        }
+        // TODO - special permission to delete admin user?
+        
+        // Delete blobs
+        await BlobService.blobDeleteContainer(`${ContainerType.PHOTOS}${deleteUser.containerId}`)
+        await BlobService.blobDeleteContainer(`${ContainerType.DATA}${deleteUser.containerId}`)
+        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_DATA}${deleteUser.containerId}`)
+        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_PHOTOS}${deleteUser.containerId}`)
+
+        // Remove from user table
+        if (!this.users) {
+            this.users = await BlobService.getUsers()
+        }
+        this.users = this.users.filter(u => u.hwmid !== deleteUser.hwmid)
+        await BlobService.updateUsers(this.users)
     }
 
     public async postTestResults(user: User, testResults: TestResult[]) : Promise<Person[]>
