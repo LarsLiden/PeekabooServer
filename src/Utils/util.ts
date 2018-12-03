@@ -316,6 +316,14 @@ export function personKey(person: Person): string {
     return keyFromSaveName(person.saveName)
 } 
 
+export function getPhotoURI(containerName: string, person: Person, photoName: string) {
+    return `https://peekaboo.blob.core.windows.net/${containerName}/${getPhotoBlobName(person, photoName)}`
+}
+
+export function getPersonBlobName(person: Person) {
+    const savePrefix = keyFromSaveName(person.saveName)
+    return savePrefix +'\\' + person.saveName +'.json'
+}
 export function getPhotoBlobName(person: Person, photoName: string) {
     return `${personKey(person)}/${person.saveName}/${photoName}`
 }

@@ -16,14 +16,19 @@ export interface ClientUser {
     email: string,
     hwmid: string,
     photoBlobPrefix: string
+    isAdmin?: boolean
 }
 
 export function toClientUser(user: User): ClientUser {
-    return {
+    let clientUser: ClientUser =   {
         name: user.name,
         googleId: user.googleId,
         email: user.email,
         hwmid: user.hwmid,
         photoBlobPrefix: GetContainer(user, ContainerType.PHOTOS)
     }
+    if (user.isAdmin) {
+        clientUser.isAdmin = true
+    }
+    return clientUser
 }

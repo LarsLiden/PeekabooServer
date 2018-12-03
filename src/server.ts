@@ -189,6 +189,29 @@ app.delete('/api/person/:key/:personGUID/photo/:name', async function(req, res, 
   }
 })
 
+app.post('/api/person/:key/:personGUID/archive', async function(req, res, next) {
+  try {
+    const { personGUID, key } = req.params
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    if (!user.isAdmin) {
+      res.sendStatus(401)
+    }
+    await DataProvider.archive(user, key, personGUID)
+    res.send(200)
+  } catch (error) {
+    res.sendStatus(500)
+  }
+})
+
 app.post('/api/import', async function(req, res, next) {
   try {
     const hwmid = req.headers["have_we_met_header"]

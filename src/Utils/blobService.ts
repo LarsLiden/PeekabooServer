@@ -5,7 +5,7 @@
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
 import { User } from '../Models/user'
-import { GetContainer, ContainerType } from '../Utils/util'
+import { GetContainer, ContainerType, getPersonBlobName, getPhotoBlobName, getPhotoURI } from '../Utils/util'
 import { promisify } from 'util'
 
 const ADMIN_CONTAINER = 'admin'
@@ -55,8 +55,7 @@ export class BlobService {
                 ? GetContainer(user, ContainerType.ARCHIVE_DATA)
                 : GetContainer(user, ContainerType.DATA)
 
-        const savePrefix = person.saveName[0].toUpperCase()
-        let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
+        let dataBlobPath = getPersonBlobName(person)
         await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }
 
@@ -76,7 +75,7 @@ export class BlobService {
             return person
         }
         return null
-     }
+    }
 
     public async deletePerson(user: User, person: Person): Promise<void> {
 
@@ -87,8 +86,7 @@ export class BlobService {
                 ? GetContainer(user, ContainerType.ARCHIVE_DATA)
                 : GetContainer(user, ContainerType.DATA)
 
-        const savePrefix = person.saveName[0].toUpperCase()
-        let dataBlobPath = savePrefix +'\\' + person.saveName +'.json'
+        let dataBlobPath = getPersonBlobName(person)
         promises.push(this.blobDelete(dataContainerName, dataBlobPath))
         await Promise.all(promises)
     }
@@ -114,6 +112,30 @@ export class BlobService {
         return promises
     }
     
+    public async archivePerson(user: User, person: Person): Promise<void> {
+        
+        // Copy person to archive   
+        let archivePerson = {...person, isArchived: true}
+        await this.uploadPerson(user, archivePerson)
+        await this.archivePhotos(user, person)
+
+        // Delete person
+        let dataContainerName = GetContainer(user, ContainerType.DATA)
+        let dataBlobPath = getPersonBlobName(person)
+        await this.blobDelete(dataContainerName, dataBlobPath)
+    }
+
+    public async archivePhotos(user: User, person: Person): Promise<void> {
+        let photoContainerName = GetContainer(user, ContainerType.PHOTOS)
+        let archiveContainerName = GetContainer(user, ContainerType.ARCHIVE_PHOTOS)
+        person.photoFilenames.forEach(async (photoName) => {
+            const photoURI = getPhotoURI(photoContainerName, person, photoName)
+            const photoBlobName = getPhotoBlobName(person, photoName)
+            await this.blobCopyBlob(photoURI, archiveContainerName, photoBlobName)
+            await this.blobDelete(photoContainerName, photoBlobName)
+        })  
+    }
+
     public async getPeopleStartingWith(user: User, letter: string): Promise<Person[]> {
 
         let containerName = GetContainer(user, ContainerType.DATA)
@@ -161,7 +183,13 @@ export class BlobService {
         }
         await this.blobCreateFromLocalFile(containerName, blobName, localFileName)
     }
-  
+
+    
+    public async blobCopyBlob(sourceBlobURI: string, targetcontainerName: string, targetBlobName: string): Promise<void> {
+        const startCopyBlobAsync = promisify(this._blobService.startCopyBlob.bind(this._blobService))
+        await startCopyBlobAsync(sourceBlobURI, targetcontainerName, targetBlobName,{})
+    }
+
     public async blobGetAsText(containerName: string, blobName: string) {
         const getBlobToTextAsync = promisify(this._blobService.getBlobToText).bind(this._blobService)
         return await getBlobToTextAsync(containerName, blobName)
