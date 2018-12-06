@@ -5,6 +5,7 @@
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
 import { User } from '../Models/user'
+import { newPerformance } from '../Models/performance'
 import { GetContainer, ContainerType, getPersonBlobName, getPhotoBlobName, getPhotoURI, keyFromPersonId } from '../Utils/util'
 import { promisify } from 'util'
 
@@ -59,11 +60,20 @@ export class BlobService {
         await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }
 
-    public async copyPerson(sourceUser: User, destUser: User, person: Person): Promise<void> {
+    public async copyPerson(sourceUser: User, destUser: User, person: Person, reset: boolean = true): Promise<void> {
+
+        let copyPerson: Person = {...person}
+
+        if (reset) {
+            copyPerson.photoPerformance = newPerformance()
+            copyPerson.namePerformance = newPerformance()
+            copyPerson.descPerformance = newPerformance()
+        }
+
         // Copy Person
         let dataBlobPath = getPersonBlobName(person)
         let dataContainerName = GetContainer(destUser, ContainerType.DATA)
-        await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+        await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(copyPerson))
 
         // Copy Photos
         let sourcePhotoContainerName = GetContainer(sourceUser, ContainerType.PHOTOS)

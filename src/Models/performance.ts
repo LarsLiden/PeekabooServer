@@ -17,15 +17,19 @@ export interface Performance {
     frequencyOffsetEnd: number
 }
 
-export function reset(performance: Performance): void {
-    performance.bestTime = 0
-    performance.worstTime = 0
-
-    // Set ave to the worst
-    // time to bias towards new people
-    performance.avgTime	= MAX_TIME
-    performance.numPresentations = 0
-    performance.lastTested = 0
+export function newPerformance(): Performance {
+    return {
+        bestTime: MAX_TIME,
+        avgTime: MAX_TIME,
+        worstTime: 0,
+        numPresentations: 0,
+        frequency: 0,
+        rank: 0,
+        lastTested: 0,
+        familiarity: 0,
+        frequencyOffsetStart: 0,
+        frequencyOffsetEnd: 0,
+    }
 }
     
 export function addResult(performance: Performance, elapsedTime: number): void {
