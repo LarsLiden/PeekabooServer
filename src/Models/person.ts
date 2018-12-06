@@ -26,7 +26,7 @@ export interface Person {
     fullNickName: string
     alternateName: string
     fullAternateName: string
-    saveName: string 
+    personId: string 
     descriptionWithKeyValues: string
     allKeyValues: string
     description: string

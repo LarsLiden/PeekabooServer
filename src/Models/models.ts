@@ -10,20 +10,8 @@ export enum PerfType
     ALPHA = "ALPHA"
 }
 
-
-export interface Tag {
-    name: string
-    count: number
-}
-
-export interface Filter {
-    perfType: PerfType
-    required: string[]
-    blocked: string[]
-}
-
 export interface Event {
-    id: string
+    eventId: string
     date?: string
     description: string
     location: string
@@ -41,7 +29,7 @@ export enum SocialNetType
 }
 
 export interface SocialNet {
-    id: string
+    socialNetId: string
     URL: string
     profileID: string
     netType: SocialNetType

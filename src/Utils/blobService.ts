@@ -5,7 +5,7 @@
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
 import { User } from '../Models/user'
-import { GetContainer, ContainerType, getPersonBlobName, getPhotoBlobName, getPhotoURI } from '../Utils/util'
+import { GetContainer, ContainerType, getPersonBlobName, getPhotoBlobName, getPhotoURI, keyFromPersonId } from '../Utils/util'
 import { promisify } from 'util'
 
 const ADMIN_CONTAINER = 'admin'
@@ -59,18 +59,18 @@ export class BlobService {
         await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }
 
-    public async getPerson(user: User, saveName: string, guid: string): Promise<Person | null> {
+    public async getPerson(user: User, personId: string): Promise<Person | null> {
         // Upload the person file
         let dataContainerName = GetContainer(user, ContainerType.DATA)
 
-        const savePrefix = saveName[0].toUpperCase()
-        let dataBlobPath = savePrefix +'\\' + saveName +'.json'
+        const savePrefix = keyFromPersonId(personId)
+        let dataBlobPath = savePrefix +'\\' + personId +'.json'
 
         let blobFile = await this.blobGetAsText(dataContainerName, dataBlobPath)
         if (blobFile) {
             let person: Person = JSON.parse(blobFile)
-            if (person.guid !== guid) {
-                throw new Error("Person GUID invalid")
+            if (person.personId !== personId) {
+                throw new Error("Person personId invalid")
             }
             return person
         }

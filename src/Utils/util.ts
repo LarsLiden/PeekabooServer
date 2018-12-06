@@ -103,7 +103,7 @@ class Util {
         let events = rawPerson._events.map((e: any) => {
             let date = new Date(e.Date) 
             return {
-                id: generateGUID(),
+                eventId: generateGUID(),
                 date: date.toJSON(),  
                 description: e.Description,
                 location: e.Location
@@ -112,7 +112,7 @@ class Util {
         
         let socialNets = rawPerson._socialNets.map((sn: any) => {
             return {
-                id: generateGUID(),
+                socialNetId: generateGUID(),
                 URL: sn.URL,
                 profileID: sn.profileId,
                 netType: sn.netType === 0 ? SocialNetType.LINKEDIN : SocialNetType.FACEBOOK
@@ -139,7 +139,7 @@ class Util {
             fullNickName: rawPerson.FullNickName,
             alternateName: rawPerson.AlternateName,
             fullAternateName: rawPerson.FullAternateName,
-            saveName: `${rawPerson.FirstName}_${rawPerson.LastName}`.replace(/[\W_]+/g,"").replace(" ",""),
+            personId: generateSaveName(rawPerson.FirstName, rawPerson.LastName),
             descriptionWithKeyValues: rawPerson.DescriptionWithKeyValues,
             allKeyValues: rawPerson.AllKeyValues,
             description: rawPerson.Description,
@@ -194,21 +194,29 @@ class Util {
     public connectRelationships(people: Person[]) {
         people.forEach(person => {
             person.relationships.forEach(relationship => {
-                if (!relationship.id) {
-                    let id = generateGUID()
-                    relationship.id = id
-                    // Find reverse relationship
+                if (!relationship.relationshipId) {
+                    let relationshipId = generateGUID()
+                    relationship.relationshipId = relationshipId
+
+                    // Find reverse person
                     let partner = people.find(p => p.guid === relationship.personId)
                     if (partner) {
+                        // Replace old guid with personId
+                        relationship.personId = partner.personId
+
+                        // find reverse relationship
                         let reverse = partner.relationships.find(r => r.personId === person.guid)
                         if (reverse) {
-                            reverse.id = id
+                            // Add matching relationshipId
+                            reverse.relationshipId = relationshipId
+                            // Replace old guid with personId
+                            reverse.personId = person.personId
                         }
                         else {
                             console.log(`making: ${person.firstName} ${person.lastName} ${relationship.type.from} ${partner.firstName} ${partner.lastName} `)
                             let reverseRelationship: Relationship =  {
-                                id: relationship.id,
-                                personId: person.guid,
+                                relationshipId: relationship.relationshipId,
+                                personId: person.personId,
                                 type: RelationshipType.getRelationshipType(relationship.type.to)
                             }
                             partner.relationships.push(reverseRelationship)
@@ -223,9 +231,8 @@ class Util {
     }
 
     public async UploadLocalFiles(user: User): Promise<void> {
-        Cache.ClearAll()
 
-        // Create storate containers
+        // Create storage containers
         let photoContainer = GetContainer(user, ContainerType.PHOTOS)
         await BlobService.blobCreateContainer(photoContainer, false) 
 
@@ -253,12 +260,12 @@ class Util {
                 photoFiles.push(df)
             }   
         }
-        let temp = 0
+        let uploadCount = 0
 
         let people: Person[] = []
         personFiles.forEach(personFile => {
-            temp = temp + 1
-            if (temp < MAX_UPLOAD) {
+            uploadCount = uploadCount + 1
+            if (uploadCount < MAX_UPLOAD) {
             try {
                 people.push(this.importPersonFile(user, personFile, photoFiles))
             }
@@ -276,6 +283,7 @@ class Util {
                 BlobService.uploadPerson(user, person)
             }
         })
+        Cache.ClearAll()
         console.log("DONE!")
     }
 }
@@ -289,6 +297,19 @@ export enum ContainerType {
 
 export function GetContainer(user: User, type: ContainerType) {
     return `${type}${user.containerId}`
+}
+
+export function generateSaveName(firstName: string, lastName: string): string {
+
+    let d = new Date().getTime()
+    let id = 'xxxxx'.replace(/[xy]/g, char => {
+      let r = ((d + Math.random() * 16) % 16) | 0
+      d = Math.floor(d / 16)
+      return (char === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+    })
+
+    let baseName = `${firstName}_${lastName}`.replace(/[\W_]+/g, "").replace(" ", "")
+    return `${baseName}_${id}`
 }
 
 export function generateGUID(): string {
@@ -309,11 +330,11 @@ export function cacheKeyFromUser(user: User, person: Person): string {
     return `${personKey(person)}_${user.containerId}`
 } 
 
-export function keyFromSaveName(saveName: string): string {
-    return saveName![0].toUpperCase()
+export function keyFromPersonId(personId: string): string {
+    return personId![0].toUpperCase()
 }
 export function personKey(person: Person): string {
-    return keyFromSaveName(person.saveName)
+    return keyFromPersonId(person.personId)
 } 
 
 export function getPhotoURI(containerName: string, person: Person, photoName: string) {
@@ -321,17 +342,17 @@ export function getPhotoURI(containerName: string, person: Person, photoName: st
 }
 
 export function getPersonBlobName(person: Person) {
-    const savePrefix = keyFromSaveName(person.saveName)
-    return savePrefix +'\\' + person.saveName +'.json'
+    const savePrefix = keyFromPersonId(person.personId)
+    return savePrefix +'\\' + person.personId +'.json'
 }
 export function getPhotoBlobName(person: Person, photoName: string) {
-    return `${personKey(person)}/${person.saveName}/${photoName}`
+    return `${personKey(person)}/${person.personId}/${photoName}`
 }
 
 export function getNextPhotoName(person: Person): string {
     let index = 1
     while (true) {
-        let saveName = `${person.saveName}_${index}.png`
+        let saveName = `${person.personId}_${index}.png`
         if (person.photoFilenames.includes(saveName)) {
             index = index + 1
         }

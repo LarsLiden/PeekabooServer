@@ -77,13 +77,10 @@ export function addResult(performance: Performance, elapsedTime: number): void {
     }
     // Increase presentation count
     performance.numPresentations++
-
-    // TODO
-    // Save
 }
+
 export interface TestResult {
-    saveName: string,
-    guid: string,
+    personId: string,
     result: number
 }
 

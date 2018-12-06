@@ -84,7 +84,8 @@ app.get('/api/users', async function(req, res, next) {
   }
 })
 
-app.delete('/api/user/:deleteId', async function(req, res, next) {
+// Delete a user
+app.put('/api/user/:deleteId', async function(req, res, next) {
   try {
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
@@ -108,6 +109,63 @@ app.delete('/api/user/:deleteId', async function(req, res, next) {
     }
     
     await DataProvider.deleteUser(user, deleteId)
+    res.sendStatus(200)
+  } catch (error) {
+    res.sendStatus(500)
+  }
+})
+
+// Copy to user
+app.put('/api/user/:destinationId', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    if (!user.isAdmin) {
+      res.sendStatus(401)
+      return
+    }
+
+    const { destinationId } = req.params
+    if (destinationId === hwmid) {
+      res.sendStatus(401)
+      return
+    }
+    
+    await DataProvider.exportToUser(user, destinationId)
+    res.sendStatus(200)
+  } catch (error) {
+    res.sendStatus(500)
+  }
+})
+
+app.post('/api/user', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    const updatedUser: User = req.body.user
+    if (user.hwmid !== updatedUser.hwmid) {
+      res.sendStatus(401)
+      return
+    }
+
+    await DataProvider.updateUserState(user, updatedUser)
+
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)
@@ -138,9 +196,9 @@ app.get('/api/people/:letter', async function(req, res, next) {
 })
 
 // NOTE: Not currently used
-app.get('/api/person/:key/:personGUID', async function(req, res, next) {
+app.get('/api/person/:key/:personId', async function(req, res, next) {
   try {
-    const { personGUID, key } = req.params
+    const { personId } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -151,7 +209,7 @@ app.get('/api/person/:key/:personGUID', async function(req, res, next) {
       res.sendStatus(400)
       return
     }
-    let person = await DataProvider.getPerson(user, key, personGUID)
+    let person = await DataProvider.getPerson(user, personId)
     res.send(person)
 
   } catch (error) {
@@ -181,9 +239,9 @@ app.put('/api/person', async function(req, res, next) {
   }
 })
 
-app.delete('/api/person/:key/:personGUID', async function(req, res, next) {
+app.delete('/api/person/:personId', async function(req, res, next) {
   try {
-    const { personGUID, key } = req.params
+    const { personId } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -194,7 +252,7 @@ app.delete('/api/person/:key/:personGUID', async function(req, res, next) {
       res.sendStatus(400)
       return
     }
-    await DataProvider.deletePerson(user, key, personGUID)
+    await DataProvider.deletePerson(user, personId)
     res.sendStatus(200)
 
   } catch (error) {
@@ -202,10 +260,10 @@ app.delete('/api/person/:key/:personGUID', async function(req, res, next) {
   }
 })
 
-app.put('/api/person/:key/:personGUID/photo', async function(req, res, next) {
+app.put('/api/person/:personId/photo', async function(req, res, next) {
   try {
     const imageData: string = req.body.photo
-    const { personGUID, key } = req.params
+    const { personId } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -216,16 +274,16 @@ app.put('/api/person/:key/:personGUID/photo', async function(req, res, next) {
       res.sendStatus(400)
       return
     }
-    let photoName = await DataProvider.putPhoto(user, key, personGUID, imageData)
+    let photoName = await DataProvider.putPhoto(user, personId, imageData)
     res.send(photoName)
   } catch (error) {
     res.sendStatus(500)
   }
 })
 
-app.delete('/api/person/:key/:personGUID/photo/:name', async function(req, res, next) {
+app.delete('/api/person/:personId/photo/:name', async function(req, res, next) {
   try {
-    const { key, personGUID, name } = req.params
+    const { personId, name } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -236,16 +294,16 @@ app.delete('/api/person/:key/:personGUID/photo/:name', async function(req, res, 
       res.sendStatus(400)
       return
     }
-    await DataProvider.deletePhoto(user, key, personGUID, name)
+    await DataProvider.deletePhoto(user, personId, name)
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)
   }
 })
 
-app.post('/api/person/:key/:personGUID/archive', async function(req, res, next) {
+app.post('/api/person/:personId/archive', async function(req, res, next) {
   try {
-    const { personGUID, key } = req.params
+    const { personId } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -259,7 +317,7 @@ app.post('/api/person/:key/:personGUID/archive', async function(req, res, next) 
     if (!user.isAdmin) {
       res.sendStatus(401)
     }
-    await DataProvider.archive(user, key, personGUID)
+    await DataProvider.archive(user, personId)
     res.send(200)
   } catch (error) {
     res.sendStatus(500)
