@@ -116,36 +116,44 @@ app.put('/api/user/:deleteId', async function(req, res, next) {
 })
 
 // Copy to user
-app.put('/api/user/:destinationId', async function(req, res, next) {
+app.post('/api/user/:destinationId', async function(req, res, next) {
   try {
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
       return
     }
-    const user = await DataProvider.userFromId(hwmid as string)
-    if (!user) {
+    const sourceUser = await DataProvider.userFromId(hwmid as string)
+    if (!sourceUser) {
       res.sendStatus(400)
       return
     }
-    if (!user.isAdmin) {
+    if (!sourceUser.isAdmin) {
       res.sendStatus(401)
       return
     }
-
+    // Can't copy to self
     const { destinationId } = req.params
     if (destinationId === hwmid) {
       res.sendStatus(401)
       return
     }
-    
-    await DataProvider.exportToUser(user, destinationId)
+
+    const destUser = await DataProvider.userFromId(destinationId as string)
+    if (!destUser) {
+      res.sendStatus(400)
+      return
+    }
+
+    const peopleIds: string[] = req.body.peopleIds
+    await DataProvider.copyPeople(sourceUser, destUser, peopleIds)
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)
   }
 })
 
+// Update user stats
 app.post('/api/user', async function(req, res, next) {
   try {
     const hwmid = req.headers["have_we_met_header"]

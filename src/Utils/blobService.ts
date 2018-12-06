@@ -59,6 +59,22 @@ export class BlobService {
         await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
     }
 
+    public async copyPerson(sourceUser: User, destUser: User, person: Person): Promise<void> {
+        // Copy Person
+        let dataBlobPath = getPersonBlobName(person)
+        let dataContainerName = GetContainer(destUser, ContainerType.DATA)
+        await this.blobUploadText(dataContainerName, dataBlobPath, JSON.stringify(person))
+
+        // Copy Photos
+        let sourcePhotoContainerName = GetContainer(sourceUser, ContainerType.PHOTOS)
+        let destPhotoContainerName = GetContainer(destUser, ContainerType.PHOTOS)
+        for (let photoName of person.photoFilenames) {
+            const photoURI = getPhotoURI(sourcePhotoContainerName, person, photoName)
+            const photoBlobName = getPhotoBlobName(person, photoName)
+            await this.blobCopyBlob(photoURI, destPhotoContainerName, photoBlobName)
+        }
+    }
+
     public async getPerson(user: User, personId: string): Promise<Person | null> {
         // Upload the person file
         let dataContainerName = GetContainer(user, ContainerType.DATA)

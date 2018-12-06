@@ -20,6 +20,11 @@ export class Cache {
         this.cacheItems = this.cacheItems.filter(i => i.key !== key)
     }
 
+    public static InvalidateMatching(rawkey: string) {
+        const key = rawkey.toUpperCase()
+        this.cacheItems = this.cacheItems.filter(i => i.key.lastIndexOf(key) < 0)
+    }
+
     public static Get(rawkey: string): any {
         const key = rawkey.toUpperCase()
         let cacheObj = this.cacheItems.find(i => i.key === key)

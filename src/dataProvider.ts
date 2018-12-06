@@ -90,29 +90,18 @@ class DataProvider {
         return this.users
     }
 
-    public async exportToUser(user: User, destinationId: string): Promise<void> {
-        if (!user.isAdmin || destinationId === user.hwmid) {
+    public async copyPeople(sourceUser: User, destUser: User, peopleIds: string[]): Promise<void> {
+        if (!sourceUser.isAdmin || destUser.hwmid === sourceUser.hwmid) {
             throw Error("Permission Denied")
         }
 
-        const deleteUser = await this.userFromId(destinationId)
-        if (!deleteUser) {
-            throw Error("No such user")
+        for (let personId of peopleIds) {
+            let person = await this.getPerson(sourceUser, personId)
+            await BlobService.copyPerson(sourceUser, destUser, person)
         }
-        // TODO - special permission to delete admin user?
-        
-        // Delete blobs
-        await BlobService.blobDeleteContainer(`${ContainerType.PHOTOS}${deleteUser.containerId}`)
-        await BlobService.blobDeleteContainer(`${ContainerType.DATA}${deleteUser.containerId}`)
-        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_DATA}${deleteUser.containerId}`)
-        await BlobService.blobDeleteContainer(`${ContainerType.ARCHIVE_PHOTOS}${deleteUser.containerId}`)
 
-        // Remove from user table
-        if (!this.users) {
-            this.users = await BlobService.getUsers()
-        }
-        this.users = this.users.filter(u => u.hwmid !== deleteUser.hwmid)
-        await BlobService.updateUsers(this.users)
+        // Invalide cache for destination user
+        Cache.InvalidateMatching(destUser.containerId)
     }
 
 
@@ -163,9 +152,6 @@ class DataProvider {
             // Add copy if haven't already added
             if (!changedPeople.find(p => p.personId === testResult.personId)) {
                 let existingPerson = await this.getPerson(user, testResult.personId)
-                if (!existingPerson) {
-                    throw Error("Unknown Person")
-                }
                 let personCopy = {...existingPerson}
                 changedPeople.push(personCopy)
             }
@@ -188,7 +174,7 @@ class DataProvider {
         return changedPeople
     }
 
-    public async getPerson(user: User, personId: string): Promise<Person | null> {
+    public async getPerson(user: User, personId: string): Promise<Person> {
 
         // First look in cache
         let key = keyFromPersonId(personId)
@@ -201,27 +187,16 @@ class DataProvider {
             }
         }
         // Otherwise load it
-        return await BlobService.getPerson(user, personId)
-    }
-
-    public async getPersonSlow(user: User, personId: string) : Promise<Person> {
-        let key = keyFromPersonId(personId)
-        let cKey = cacheKey(user, key)
-        let people: Person[] = Cache.Get(cKey)
-        // If not in cache load
-        if (!people) {
-            people = await this.getPeopleStartingWith(user, key)
+        let foundPerson = await BlobService.getPerson(user, personId)
+        if (!foundPerson) {
+            throw Error("Invalid PersonId")
         }
-        let person = people.find(p => p.personId === personId)
-        if (!person) {
-            throw new Error("Can't find person")
-        }
-        return person
+        return foundPerson
     }
 
     public async deletePerson(user: User, personId: string) : Promise<void>
     {
-        let person = await this.getPersonSlow(user, personId)
+        let person = await this.getPerson(user, personId)
         await BlobService.deletePerson(user, person)
 
         // Update cache
@@ -230,7 +205,7 @@ class DataProvider {
 
     public async putPhoto(user: User, personId: string, photoData: string) : Promise<string>
     {
-        let person = await this.getPersonSlow(user, personId)
+        let person = await this.getPerson(user, personId)
         const photoName = getNextPhotoName(person)
         
         try {
@@ -255,7 +230,7 @@ class DataProvider {
 
     public async deletePhoto(user: User, personId: string, photoName: string) : Promise<void>
     {
-        let person = await this.getPersonSlow(user, personId)
+        let person = await this.getPerson(user, personId)
         const photoBlobName = getPhotoBlobName(person, photoName)
         await BlobService.deletePhoto(user, person, photoBlobName)
 
@@ -265,7 +240,7 @@ class DataProvider {
     }
  
     public async archive(user: User, personId: string) : Promise<void> {
-        let person = await this.getPersonSlow(user, personId)
+        let person = await this.getPerson(user, personId)
         await BlobService.archivePerson(user, person)
         this.cacheDeletePerson(user, person)
     }
