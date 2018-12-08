@@ -277,12 +277,12 @@ class Util {
 
         this.connectRelationships(people)
 
-        people.forEach(person => {
+        for (let person of people) {
             // Upload the person file (don't await)
             if (!NO_UPLOAD) {
-                BlobService.uploadPerson(user, person)
+                await BlobService.uploadPerson(user, person)
             }
-        })
+        }
         Cache.ClearAll()
         console.log("DONE!")
     }

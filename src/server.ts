@@ -85,7 +85,7 @@ app.get('/api/users', async function(req, res, next) {
 })
 
 // Delete a user
-app.put('/api/user/:deleteId', async function(req, res, next) {
+app.delete('/api/user/:deleteHwmid', async function(req, res, next) {
   try {
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
@@ -102,13 +102,13 @@ app.put('/api/user/:deleteId', async function(req, res, next) {
       return
     }
 
-    const { deleteId } = req.params
-    if (deleteId === hwmid) {
+    const { deleteHwmid } = req.params
+    if (deleteHwmid === hwmid) {
       res.sendStatus(401)
       return
     }
     
-    await DataProvider.deleteUser(user, deleteId)
+    await DataProvider.deleteUser(user, deleteHwmid)
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)

@@ -105,12 +105,12 @@ class DataProvider {
     }
 
 
-    public async deleteUser(user: User, deleteId: string): Promise<void> {
-        if (!user.isAdmin || deleteId === user.hwmid) {
+    public async deleteUser(user: User, deleteHwmid: string): Promise<void> {
+        if (!user.isAdmin || deleteHwmid === user.hwmid) {
             throw Error("Permission Denied")
         }
 
-        const deleteUser = await this.userFromId(deleteId)
+        const deleteUser = await this.userFromId(deleteHwmid)
         if (!deleteUser) {
             throw Error("No such user")
         }
