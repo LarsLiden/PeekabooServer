@@ -67,6 +67,10 @@ class DataProvider {
 
         let dataContainer = GetContainer(user, ContainerType.DATA)
         await BlobService.blobCreateContainer(dataContainer, true) 
+
+        // Copy sample people to new user      
+        await this.copySamplePeople(user)
+  
         return user
     }
 
@@ -270,6 +274,25 @@ class DataProvider {
         if (peopleCache) {
             peopleCache = peopleCache.filter(p => p.guid !== person.guid)
             Cache.Set(cKey, peopleCache)
+        }
+    }
+
+    private async copySamplePeople(destUser: User): Promise<void> {
+
+        const sampleUser = await this.userFromId("sample")
+        if (!sampleUser) {
+            console.log("Missing sample person")
+            return
+        }
+        let cKey = "sample_people"
+        let people: Person[] = Cache.Get(cKey)
+        if (!people) {
+            people = await BlobService.getAllPeople(sampleUser)
+            Cache.Set(cKey, people)
+        }
+
+        for (let person of people) {
+            await BlobService.copyPerson(sampleUser, destUser, person)
         }
     }
 }

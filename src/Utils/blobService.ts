@@ -185,6 +185,22 @@ export class BlobService {
         return people
     }
 
+    public async getAllPeople(user: User): Promise<Person[]> {
+
+        let containerName = GetContainer(user, ContainerType.DATA)
+        let peopleBlobs = await this.blobList(containerName)
+
+        let people: Person[] = []
+        for (let blobInfo of peopleBlobs) {
+            let blobFile = await this.blobGetAsText(containerName, blobInfo.name)
+            if (blobFile) {
+                let person = JSON.parse(blobFile)
+                people.push(person)
+            }
+        }
+        return people
+    }
+
     public async uploadPhoto(user: User, person: Person, blobName: string, photoData: string) {
 
         let faceContainerName = person.isArchived 
@@ -245,6 +261,12 @@ export class BlobService {
     public async blobListWithPrefix(containerName: string, letter: string) {
         let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmentedWithPrefix).bind(this._blobService)
         return (await listBlobsSegmentedAsync(containerName, letter, null as any)).entries
+    }
+
+    // Just used for sample
+    public async blobList(containerName: string) {
+        let listBlobsSegmentedAsync = promisify(this._blobService.listBlobsSegmented).bind(this._blobService)
+        return (await listBlobsSegmentedAsync(containerName, null as any)).entries
     }
 
     public async blobDoesExist(containerName: string, blobName: string) {
