@@ -3,7 +3,7 @@
  * Licensed under the MIT License.
  */
 import * as express from 'express';
-import util from "./Utils/util";
+import diskImport from "./Utils/diskImport";
 import * as bodyParser from 'body-parser'
 import { Person } from './Models/person'
 import { User, toClientUser} from './Models/user'
@@ -345,7 +345,7 @@ app.post('/api/import', async function(req, res, next) {
       return
     }
 
-    await util.UploadLocalFiles(user)
+    await diskImport.UploadLocalFiles(user)
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)
