@@ -58,6 +58,7 @@ class DataProvider {
         user.containerId = generateGUID()
         user.createdDateTime = new Date().toJSON()
         user.lastUsedDatTime = new Date().toJSON()
+        user.isNew = true
         this.users.push(user)
         BlobService.updateUsers(this.users)
 
@@ -137,6 +138,7 @@ class DataProvider {
     public async updateUserState(user: User, updatedUser: User): Promise<void> {
         if (this.users) {
             let newUser = {...user,  
+                isNew: false,
                 numPeople: updatedUser.numPeople,
                 numPhotos: updatedUser.numPhotos,
                 numTestResults: updatedUser.numTestResults

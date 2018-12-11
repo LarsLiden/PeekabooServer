@@ -17,6 +17,7 @@ export interface ClientUser {
     hwmid: string
     photoBlobPrefix: string
     isAdmin?: boolean
+    isNew?: boolean
     numPeople: number
     numPhotos: number
     numTestResults: number
@@ -35,6 +36,9 @@ export function toClientUser(user: User): ClientUser {
     }
     if (user.isAdmin) {
         clientUser.isAdmin = true
+    }
+    if (user.isNew) {
+        clientUser.isNew = true
     }
     return clientUser
 }
