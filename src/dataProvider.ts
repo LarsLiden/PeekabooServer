@@ -18,6 +18,9 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => object | numbe
     return [...xs.slice(0, index), updatedX, ...xs.slice(index + 1)]
 }
 
+const SAMPLE_CACHE = "sample_people"
+const SAMPLE_USER_ID = "sample"
+
 // TODO - make into namespace not a class
 class DataProvider {
  
@@ -264,9 +267,13 @@ class DataProvider {
         const cKey = cacheKeyFromUser(user, person)
         let peopleCache: Person[] = Cache.Get(cKey)
         if (peopleCache) {
-            peopleCache = peopleCache.filter(p => p.guid !== person.guid)
+            peopleCache = peopleCache.filter(p => p.personId !== person.personId)
             peopleCache.push(person)
             Cache.Set(cKey, peopleCache)
+        }
+
+        if (user.hwmid === SAMPLE_USER_ID) {
+            Cache.Invalidate(SAMPLE_CACHE)
         }
     }
 
@@ -274,23 +281,27 @@ class DataProvider {
         const cKey = cacheKeyFromUser(user, person)
         let peopleCache: Person[] = Cache.Get(cKey)
         if (peopleCache) {
-            peopleCache = peopleCache.filter(p => p.guid !== person.guid)
+            peopleCache = peopleCache.filter(p => p.personId !== person.personId)
             Cache.Set(cKey, peopleCache)
+        }
+
+        if (user.hwmid === SAMPLE_USER_ID) {
+            Cache.Invalidate(SAMPLE_CACHE)
         }
     }
 
     private async copySamplePeople(destUser: User): Promise<void> {
 
-        const sampleUser = await this.userFromId("sample")
+        const sampleUser = await this.userFromId(SAMPLE_USER_ID)
         if (!sampleUser) {
             console.log("Missing sample person")
             return
         }
-        let cKey = "sample_people"
-        let people: Person[] = Cache.Get(cKey)
+
+        let people: Person[] = Cache.Get(SAMPLE_CACHE)
         if (!people) {
             people = await BlobService.getAllPeople(sampleUser)
-            Cache.Set(cKey, people)
+            Cache.Set(SAMPLE_CACHE, people)
         }
 
         for (let person of people) {

@@ -118,7 +118,7 @@ export default class DiskImport {
         })
 
         let person = {
-            guid: rawPerson.MyGuid,
+            importGUID: rawPerson.MyGuid,
             photoFilenames: rawPerson._photoFNs,
             tags: rawPerson._tags,
             keyValues,
@@ -197,13 +197,13 @@ export default class DiskImport {
                     relationship.relationshipId = relationshipId
 
                     // Find reverse person
-                    let partner = people.find(p => p.guid === relationship.personId)
+                    let partner = people.find(p => p.importGUID === relationship.personId)
                     if (partner) {
                         // Replace old guid with personId
                         relationship.personId = partner.personId
 
                         // find reverse relationship
-                        let reverse = partner.relationships.find(r => r.personId === person.guid)
+                        let reverse = partner.relationships.find(r => r.personId === person.importGUID)
                         if (reverse) {
                             // Add matching relationshipId
                             reverse.relationshipId = relationshipId

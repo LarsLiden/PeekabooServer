@@ -18,7 +18,6 @@ export interface Person {
     relationships: Relationship[]
     nickName: string
     maidenName: string
-    guid: string
     isArchived: boolean
     firstName: string
     lastName: string
@@ -31,4 +30,5 @@ export interface Person {
     allKeyValues: string
     description: string
     creationDate: string
+    importGUID?: string
 }
