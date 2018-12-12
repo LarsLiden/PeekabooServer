@@ -2,6 +2,6 @@
     "appService.zipIgnorePattern": [
         "node_modules{,/**}"
     ],
-    "appService.defaultWebAppToDeploy": "/subscriptions/774120f6-483e-44b8-b27d-7124336ae3bb/resourceGroups/appsvc_rg_linux_centralus/providers/Microsoft.Web/sites/PeekabooServer",
-    "appService.deploySubpath": "lib"
+    "appService.deploySubpath": "dist",
+    "appService.defaultWebAppToDeploy": "/subscriptions/774120f6-483e-44b8-b27d-7124336ae3bb/resourceGroups/peekaboo/providers/Microsoft.Web/sites/PeekabooServer"
 }

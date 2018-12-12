@@ -37,6 +37,7 @@ app.post('/api/login', async function(req, res, next) {
     let clientUser = toClientUser(foundUser)
     res.send(clientUser)
   } catch (error) {
+    console.log(JSON.stringify(error))
     res.sendStatus(500)
   }
 });
