@@ -265,6 +265,7 @@ app.delete('/api/person/:personId', async function(req, res, next) {
     res.sendStatus(200)
 
   } catch (error) {
+    console.log(JSON.stringify(error))
     res.sendStatus(400)
   }
 })
