@@ -347,7 +347,7 @@ app.post('/api/import', async function(req, res, next) {
       return
     }
 
-    await diskImport.UploadLocalFiles(user)
+    diskImport.UploadLocalFiles(user)
     res.sendStatus(200)
   } catch (error) {
     res.sendStatus(500)

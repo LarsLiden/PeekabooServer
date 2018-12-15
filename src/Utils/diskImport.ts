@@ -13,8 +13,9 @@ import { Event, SocialNetType, SocialNet } from '../Models/models'
 import { User } from '../Models/user'
 import BlobService from './blobService'
 
-const MAX_UPLOAD = 50
-const NO_UPLOAD = false
+// DISABLE
+const MAX_UPLOAD = 0
+const NO_UPLOAD = true
 
 const dataPath = path.join(process.cwd(), './data')
 export default class DiskImport {
@@ -237,12 +238,9 @@ export default class DiskImport {
     }
 
     public async UploadLocalFiles(user: User): Promise<void> {
-
-        this.deleteBlob("78153d28-1bac-45e9-8b61-7aced0af79c7")
-        this.deleteBlob("aa30b0de-b95e-4193-ac41-135897374ca1")
-        this.deleteBlob("da574956-1438-49b6-a16b-204c15c01238")
-        this.deleteBlob("eee86c53-55bd-4617-a8e9-e70d11175de4")
-        
+        //Manual Cleanup
+        this.deleteBlob("727a504f-4ba1-459c-bbbd-36ae2c9280e6")
+            
         // Create storage containers
         let photoContainer = util.GetContainer(user, util.ContainerType.PHOTOS)
         await BlobService.blobCreateContainer(photoContainer, false) 
@@ -292,6 +290,7 @@ export default class DiskImport {
             // Upload the person file (don't await)
             if (!NO_UPLOAD) {
                 await BlobService.uploadPerson(user, person)
+                console.log(`Uploaded: ${person.personId}`)
             }
         }
         Cache.ClearAll()
