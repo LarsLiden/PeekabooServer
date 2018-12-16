@@ -12,6 +12,19 @@ import DataProvider from './dataProvider'
 import * as appInsights  from 'applicationinsights'
 import * as cors from 'cors'
 
+var app = express()
+app.use(cors({
+  origin: ['http://localhost:3000']}))
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json({
+  limit: '10mb'
+}))
+//LARS TEMP app.options('*', cors())
+var port = process.env.PORT || 8080;    
+app.listen(port, () => {
+  console.log('We are live on ' + port);
+});
+
 appInsights.setup()
   .setAutoDependencyCorrelation(true)
   .setAutoCollectRequests(true)
@@ -24,18 +37,6 @@ appInsights.setup()
 
 let client = appInsights.defaultClient
 
-var app = express()
-app.use(cors())
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json({
-  limit: '10mb'
-}));
-var port = process.env.PORT || 8080;    
-app.listen(port, () => {
-  console.log('We are live on ' + port);
-});
-
-
 
 // ROUTES FOR OUR API
 // =============================================================================
@@ -43,7 +44,7 @@ app.listen(port, () => {
   return url.parse(req.url, true).query || {}
 }*/
 
-app.post('/api/login', async function(req, res, next) {
+app.post('/api/login', cors(), async function(req, res, next) {
   try {
     const user: User = req.body.user
 
