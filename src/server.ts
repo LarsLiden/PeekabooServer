@@ -9,7 +9,10 @@ import { Person } from './Models/person'
 import { User, toClientUser} from './Models/user'
 import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
+import * as appInsights  from 'applicationinsights'
 import * as cors from 'cors'
+
+appInsights.start();
 
 var app = express()
 app.use(cors())
@@ -21,6 +24,8 @@ var port = process.env.PORT || 8080;
 app.listen(port, () => {
   console.log('We are live on ' + port);
 });
+
+
 
 // ROUTES FOR OUR API
 // =============================================================================
