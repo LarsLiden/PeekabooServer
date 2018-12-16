@@ -37,8 +37,7 @@ app.post('/api/login', async function(req, res, next) {
     let clientUser = toClientUser(foundUser)
     res.send(clientUser)
   } catch (error) {
-    console.log(JSON.stringify(error))
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 });
 
@@ -58,7 +57,7 @@ app.post('/api/testresults', async function(req, res, next) {
     let people = await DataProvider.postTestResults(user, testResults)
     res.send(people)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -81,7 +80,7 @@ app.get('/api/users', async function(req, res, next) {
     let users = await DataProvider.getUsers(user)
     res.send(users)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -112,7 +111,7 @@ app.delete('/api/user/:deleteHwmid', async function(req, res, next) {
     await DataProvider.deleteUser(user, deleteHwmid)
     res.sendStatus(200)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -150,7 +149,7 @@ app.post('/api/user/:destinationId', async function(req, res, next) {
     await DataProvider.copyPeople(sourceUser, destUser, peopleIds)
     res.sendStatus(200)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -177,11 +176,9 @@ app.post('/api/user', async function(req, res, next) {
 
     res.sendStatus(200)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
-
-
 
 app.get('/api/people/:letter', async function(req, res, next) {
   try {
@@ -200,7 +197,7 @@ app.get('/api/people/:letter', async function(req, res, next) {
     res.send(people)
     
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -222,7 +219,7 @@ app.get('/api/person/:key/:personId', async function(req, res, next) {
     res.send(person)
 
   } catch (error) {
-    res.sendStatus(400)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -244,7 +241,7 @@ app.put('/api/person', async function(req, res, next) {
     res.sendStatus(200)
 
   } catch (error) {
-    res.sendStatus(400)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -265,8 +262,7 @@ app.delete('/api/person/:personId', async function(req, res, next) {
     res.sendStatus(200)
 
   } catch (error) {
-    console.log(JSON.stringify(error))
-    res.sendStatus(400)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -287,7 +283,7 @@ app.put('/api/person/:personId/photo', async function(req, res, next) {
     let photoName = await DataProvider.putPhoto(user, personId, imageData)
     res.send(photoName)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -307,7 +303,7 @@ app.delete('/api/person/:personId/photo/:name', async function(req, res, next) {
     await DataProvider.deletePhoto(user, personId, name)
     res.sendStatus(200)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -330,7 +326,7 @@ app.post('/api/person/:personId/archive', async function(req, res, next) {
     await DataProvider.archive(user, personId)
     res.send(200)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
 
@@ -350,6 +346,6 @@ app.post('/api/import', async function(req, res, next) {
     diskImport.UploadLocalFiles(user)
     res.sendStatus(200)
   } catch (error) {
-    res.sendStatus(500)
+    res.status(500).send(JSON.stringify(error.stack))
   }
 })
