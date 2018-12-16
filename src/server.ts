@@ -13,7 +13,15 @@ import * as appInsights  from 'applicationinsights'
 import * as cors from 'cors'
 
 appInsights.setup()
-appInsights.start();
+  .setAutoDependencyCorrelation(true)
+  .setAutoCollectRequests(true)
+  .setAutoCollectPerformance(true)
+  .setAutoCollectExceptions(true)
+  .setAutoCollectDependencies(true)
+  .setAutoCollectConsole(true)
+  .setUseDiskRetryCaching(true)
+  .start();
+
 let client = appInsights.defaultClient
 
 var app = express()
