@@ -13,6 +13,7 @@ import * as appInsights  from 'applicationinsights'
 import * as cors from 'cors'
 
 appInsights.start();
+let client = appInsights.defaultClient
 
 var app = express()
 app.use(cors())
@@ -186,7 +187,9 @@ app.post('/api/user', async function(req, res, next) {
 })
 
 app.get('/api/people/:letter', async function(req, res, next) {
-  try {
+  //try {
+
+
     const { letter } = req.params
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
@@ -198,12 +201,15 @@ app.get('/api/people/:letter', async function(req, res, next) {
       res.sendStatus(400)
       return
     }
+    client.trackTrace({message: `Get ${letter}`})
+
     const people = await DataProvider.getPeopleStartingWith(user, letter)
     res.send(people)
     
-  } catch (error) {
+/*} catch (error) {
+    client.trackTrace({message: "trace message"});
     res.status(500).send(JSON.stringify(error.stack))
-  }
+  }*/
 })
 
 // NOTE: Not currently used
