@@ -189,20 +189,30 @@ app.post('/api/user', async function(req, res, next) {
 
 app.get('/api/people/:letter', async function(req, res, next) {
   try {
+   
     const { letter } = req.params
+    client.trackEvent({name: `Letter`, properties: {letter}}) // LARS TEMP
+
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.send(400)
       return
     }
+
+    client.trackEvent({name: `UserFromId`, properties: {hwmid}}) // LARS TEMP
+
     const user = await DataProvider.userFromId(hwmid as string)
     if (!user) {
       res.sendStatus(400)
       return
     }
-    client.trackEvent({name: `GetLetter`, properties: {letter}}) // LARS TEMP
+
+    client.trackEvent({name: `GetPeopleStartingWith`, properties: {letter}}) // LARS TEMP
 
     const people = await DataProvider.getPeopleStartingWith(user, letter)
+
+    client.trackEvent({name: `Send`, properties: {letter}}) // LARS TEMP
+
     res.send(people)
   } catch (error) {
     client.trackEvent({name: `ERROR`, properties: {stack: JSON.stringify(error.stack)}})
