@@ -62,7 +62,7 @@ app.post('/api/testresults', async function(req, res, next) {
 })
 
 app.get('/api/users', async function(req, res, next) {
-  try {
+//  try {
     const hwmid = req.headers["have_we_met_header"]
     if (typeof hwmid != "string") {
       res.sendStatus(400)
@@ -79,9 +79,9 @@ app.get('/api/users', async function(req, res, next) {
     }
     let users = await DataProvider.getUsers(user)
     res.send(users)
-  } catch (error) {
+  /*} catch (error) {
     res.status(500).send(JSON.stringify(error.stack))
-  }
+  }*/
 })
 
 // Delete a user
