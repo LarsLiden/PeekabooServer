@@ -447,7 +447,8 @@ app.post('/api/import', async function(req, res, next) {
       return
     }
 
-    await DataProvider.importTags(user)
+    // IMPORT / UPLOAD admin.  Disable both for now
+    //await DataProvider.importTags(user)
     //diskImport.UploadLocalFiles(user)
     res.sendStatus(200)
   } catch (error) {
