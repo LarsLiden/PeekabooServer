@@ -5,12 +5,14 @@
 import * as azure from 'azure-storage'
 import { Person } from '../Models/person'
 import { User } from '../Models/user'
+import { Tag } from '../Models/models'
 import { newPerformance } from '../Models/performance'
 import { GetContainer, ContainerType, getPersonBlobName, getPhotoBlobName, getPhotoURI, keyFromPersonId } from '../Utils/util'
 import { promisify } from 'util'
 
 const ADMIN_CONTAINER = 'admin'
 const USER_BLOB = "users"
+const TAG_BLOB = "tags.json"
 
 export class BlobService {
     private static _instance: BlobService
@@ -83,6 +85,29 @@ export class BlobService {
             const photoBlobName = getPhotoBlobName(person, photoName)
             await this.blobCopyBlob(photoURI, destPhotoContainerName, photoBlobName)
         }
+    }
+
+    public async getTags(user: User): Promise<Tag[]> {
+        let tagContainerName = GetContainer(user, ContainerType.DATA)
+
+        // Upload the person file
+        let blobExists = await this.blobDoesExist(tagContainerName, TAG_BLOB)
+        if (!blobExists) {
+            return []
+        }
+               
+        let blobFile = await this.blobGetAsText(tagContainerName, TAG_BLOB)
+        if (blobFile) {
+            let tags: Tag[] = JSON.parse(blobFile)
+            return tags
+        }
+        return []
+    }
+
+    public async uploadTags(user: User, tags: Tag[]): Promise<void> {
+        // Upload the person file
+        let dataContainerName = GetContainer(user, ContainerType.DATA)
+        await this.blobUploadText(dataContainerName, TAG_BLOB, JSON.stringify(tags))
     }
 
     public async getPerson(user: User, personId: string): Promise<Person | null> {
@@ -219,7 +244,7 @@ export class BlobService {
 
     public async uploadLocalFile(containerName: string, blobName: string, localFileName: string) {
         let blobData = await this.blobDoesExist(containerName, blobName)
-        if (blobData.exists) {
+        if (blobData) {
             console.log(`ALREADY EXISTS: ${localFileName}`)
             return
         }
@@ -269,9 +294,10 @@ export class BlobService {
         return (await listBlobsSegmentedAsync(containerName, null as any)).entries
     }
 
-    public async blobDoesExist(containerName: string, blobName: string) {
+    public async blobDoesExist(containerName: string, blobName: string): Promise<boolean> {
         let doesBlobExistAsync = promisify(this._blobService.doesBlobExist).bind(this._blobService)
-        return await doesBlobExistAsync(containerName, blobName)
+        let result = await doesBlobExistAsync(containerName, blobName)
+        return result.exists
     }
  
     public async blobDeleteContainer(containerName: string) {

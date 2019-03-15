@@ -6,6 +6,7 @@ import { Person } from './Models/person'
 import { User } from './Models/user'
 import { generateGUID, GetContainer, ContainerType, getNextPhotoName, cacheKey, keyFromPersonId, cacheKeyFromUser, getPhotoBlobName } from './Utils/util'
 import { TestResult, addResult} from './Models/performance'
+import { Tag } from './Models/models'
 import { Cache } from './Models/cache'
 import BlobService from './Utils/blobService'
 
@@ -20,6 +21,7 @@ export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => object | numbe
 
 const SAMPLE_CACHE = "sample_people"
 const SAMPLE_USER_ID = "sample"
+const TAG_KEY = "tags"
 
 // TODO - make into namespace not a class
 class DataProvider {
@@ -203,6 +205,41 @@ class DataProvider {
         return foundPerson
     }
 
+    public async getTags(user: User): Promise<Tag[]> {
+        // First look in cache
+        let cKey = cacheKey(user, TAG_KEY)
+        let tags: Tag[] = Cache.Get(cKey)
+        if (!tags) {
+            tags = await BlobService.getTags(user)
+            Cache.Set(cKey, tags)
+        }
+        return tags
+    }
+
+    public async deleteTag(user: User, tagId: string): Promise<void> {
+        let tags = await this.getTags(user)
+        tags = tags.filter(t => t.tagId !== tagId)
+
+        // TODO = delete parent relationships in all other tags
+        BlobService.uploadTags(user, tags)
+        
+        // Replace cache
+        let cKey = cacheKey(user, TAG_KEY)
+        Cache.Set(cKey, tags)
+    }
+
+    public async updateTag(user: User, tag: Tag): Promise<void> {
+        let tags = await this.getTags(user)
+        tags = tags.filter(t => t.tagId !== tag.tagId)
+        tags.push(tag)
+
+        BlobService.uploadTags(user, tags)
+        
+        // Replace cache
+        let cKey = cacheKey(user, TAG_KEY)
+        Cache.Set(cKey, tags)
+    }
+
     public async deletePerson(user: User, personId: string) : Promise<void>
     {
         let person = await this.getPerson(user, personId)
@@ -287,6 +324,46 @@ class DataProvider {
 
         if (user.hwmid === SAMPLE_USER_ID) {
             Cache.Invalidate(SAMPLE_CACHE)
+        }
+    }
+
+    public async importTags(user: User): Promise<void> {
+        
+        let people: Person[] = await BlobService.getAllPeople(user)
+        let tags: Tag[] = []
+
+        // First create tags
+        for (let person of people) {
+            for (let stringTag of person.tags) {
+                let tag = tags.find(t => t.name === stringTag)
+                if (!tag) {
+                    let newTag: Tag = {
+                        tagId: generateGUID(),
+                        name: stringTag,
+                        parentId: null
+                    }
+                    console.log(`New: ${newTag.name}`)
+                    tags.push(newTag)
+                }
+            }
+        }
+        // Save tags
+        await BlobService.uploadTags(user, tags)
+
+        // Replace string tags with object tags
+        for (let person of people) {
+            let personTags: string[] = []
+            for (let stringTag of person.tags) {
+                let tag = tags.find(t => t.name === stringTag)
+                if (!tag) {
+                    throw Error(`Missing tag: ${stringTag}`)
+                }
+                personTags.push(tag.tagId)
+            }
+            person.tagIds = personTags
+            // Save updated person
+            console.log(`Save: ${person.firstName} ${person.lastName}`)
+            await BlobService.uploadPerson(user, person)
         }
     }
 

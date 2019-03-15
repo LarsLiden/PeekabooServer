@@ -8,7 +8,8 @@ import { Event, KeyValue, SocialNet } from './models'
 
 export interface Person {
     photoFilenames: string[]
-    tags: string[]  
+    tags: string[]
+    tagIds: string[]
     keyValues: KeyValue[]
     photoPerformance: Performance
     namePerformance: Performance

@@ -23,6 +23,12 @@ export interface KeyValue {
     value: string
 }
 
+export interface Tag {
+    tagId: string
+    name: string
+    parentId: string | null
+}
+
 export enum SocialNetType
 {
     LINKEDIN = "LINKEDIN",

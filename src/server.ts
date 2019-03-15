@@ -3,18 +3,18 @@
  * Licensed under the MIT License.
  */
 import * as express from 'express';
-import diskImport from "./Utils/diskImport";
+//import diskImport from "./Utils/diskImport";
 import * as bodyParser from 'body-parser'
 import { Person } from './Models/person'
-import { User, toClientUser} from './Models/user'
+import { User, toClientUser } from './Models/user'
+import { Tag } from './Models/models'
 import { TestResult } from './Models/performance'
 import DataProvider from './dataProvider'
 import * as appInsights  from 'applicationinsights'
 import * as cors from 'cors'
 
 var app = express()
-app.use(cors({
-  origin: ['http://localhost:3000']}))
+app.use(cors())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json({
   limit: '10mb'
@@ -229,6 +229,82 @@ app.get('/api/people/:letter', async function(req, res, next) {
   }
 })
 
+//================================
+// Tags
+//================================
+app.get('/api/tags', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.send(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+    const tags = await DataProvider.getTags(user)
+    res.send(tags)
+  } catch (error) {
+    client.trackEvent({name: `ERROR`, properties: {stack: JSON.stringify(error.stack)}})
+    res.status(500).send(JSON.stringify(error.stack))
+  }
+})
+
+// Replace a tag
+app.put('/api/tag/:tagid', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+
+    const tag: Tag = req.body.tag
+    const { tagid } = req.params
+    if (tag.tagId !== tagid) {
+      res.sendStatus(401)
+      return
+    }
+
+    await DataProvider.updateTag(user, tag)
+    res.sendStatus(200)
+  } catch (error) {
+    res.status(500).send(JSON.stringify(error.stack))
+  }
+})
+
+// Delete a tag
+app.delete('/api/tag/:tagid', async function(req, res, next) {
+  try {
+    const hwmid = req.headers["have_we_met_header"]
+    if (typeof hwmid != "string") {
+      res.sendStatus(400)
+      return
+    }
+    const user = await DataProvider.userFromId(hwmid as string)
+    if (!user) {
+      res.sendStatus(400)
+      return
+    }
+
+    const { tagid } = req.params
+
+    await DataProvider.deleteTag(user, tagid)
+    res.sendStatus(200)
+  } catch (error) {
+    res.status(500).send(JSON.stringify(error.stack))
+  }
+})
+
+//====================
+
 // NOTE: Not currently used
 app.get('/api/person/:key/:personId', async function(req, res, next) {
   try {
@@ -371,7 +447,8 @@ app.post('/api/import', async function(req, res, next) {
       return
     }
 
-    diskImport.UploadLocalFiles(user)
+    await DataProvider.importTags(user)
+    //diskImport.UploadLocalFiles(user)
     res.sendStatus(200)
   } catch (error) {
     res.status(500).send(JSON.stringify(error.stack))
