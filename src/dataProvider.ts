@@ -172,7 +172,7 @@ class DataProvider {
         for (const testResult of testResults) {
             let editPerson = changedPeople.find(p => p.personId === testResult.personId)      
             
-            // TODO: cover all perf types
+            // TODO: cover all perf types, just doing photo for now
             addResult(editPerson!.photoPerformance, testResult.result)
         }
 
