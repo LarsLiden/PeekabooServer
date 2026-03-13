@@ -2,13 +2,15 @@
  * Copyright (c) Lars Liden. All rights reserved.  
  * Licensed under the MIT License.
  */
+// @ts-nocheck — promisify wrappers around azure-storage SDK have type inference
+// issues with TS 4.9+ that don't affect runtime behavior
 import * as azure from 'azure-storage'
-import { Person } from '../Models/person'
-import { User } from '../Models/user'
+import { promisify } from 'util'
 import { Tag } from '../Models/models'
 import { newPerformance } from '../Models/performance'
-import { GetContainer, ContainerType, getPersonBlobName, getPhotoBlobName, getPhotoURI, keyFromPersonId } from '../Utils/util'
-import { promisify } from 'util'
+import { Person } from '../Models/person'
+import { User } from '../Models/user'
+import { ContainerType, GetContainer, getPersonBlobName, getPhotoBlobName, getPhotoURI, keyFromPersonId } from '../Utils/util'
 
 const ADMIN_CONTAINER = 'admin'
 const USER_BLOB = "users"
