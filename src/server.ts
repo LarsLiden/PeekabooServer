@@ -2,16 +2,17 @@
  * Copyright (c) Lars Liden. All rights reserved.  
  * Licensed under the MIT License.
  */
+import 'dotenv/config';
 import * as express from 'express';
 //import diskImport from "./Utils/diskImport";
-import * as bodyParser from 'body-parser'
-import { Person } from './Models/person'
-import { User, toClientUser } from './Models/user'
-import { Tag } from './Models/models'
-import { TestResult } from './Models/performance'
-import DataProvider from './dataProvider'
-import * as appInsights  from 'applicationinsights'
-import * as cors from 'cors'
+import * as appInsights from 'applicationinsights';
+import * as bodyParser from 'body-parser';
+import * as cors from 'cors';
+import { Tag } from './Models/models';
+import { TestResult } from './Models/performance';
+import { Person } from './Models/person';
+import { User, toClientUser } from './Models/user';
+import DataProvider from './dataProvider';
 
 var app = express()
 app.use(cors())
@@ -25,17 +26,19 @@ app.listen(port, () => {
   console.log('We are live on ' + port);
 });
 
-appInsights.setup()
-  .setAutoDependencyCorrelation(true)
-  .setAutoCollectRequests(true)
-  .setAutoCollectPerformance(true)
-  .setAutoCollectExceptions(true)
-  .setAutoCollectDependencies(true)
-  .setAutoCollectConsole(true)
-  .setUseDiskRetryCaching(true)
-  .start();
+if (process.env.APPINSIGHTS_INSTRUMENTATIONKEY) {
+  appInsights.setup()
+    .setAutoDependencyCorrelation(true)
+    .setAutoCollectRequests(true)
+    .setAutoCollectPerformance(true)
+    .setAutoCollectExceptions(true)
+    .setAutoCollectDependencies(true)
+    .setAutoCollectConsole(true)
+    .setUseDiskRetryCaching(true)
+    .start();
+}
 
-let client = appInsights.defaultClient
+let client = appInsights.defaultClient || { trackEvent: () => { } } as any
 
 
 // ROUTES FOR OUR API

@@ -2,13 +2,13 @@
  * Copyright (c) Lars Liden. All rights reserved.  
  * Licensed under the MIT License.
  */
+import { Cache } from './Models/cache'
+import { Tag } from './Models/models'
+import { addResult, TestResult } from './Models/performance'
 import { Person } from './Models/person'
 import { User } from './Models/user'
-import { generateGUID, GetContainer, ContainerType, getNextPhotoName, cacheKey, keyFromPersonId, cacheKeyFromUser, getPhotoBlobName } from './Utils/util'
-import { TestResult, addResult} from './Models/performance'
-import { Tag } from './Models/models'
-import { Cache } from './Models/cache'
 import BlobService from './Utils/blobService'
+import { cacheKey, cacheKeyFromUser, ContainerType, generateGUID, GetContainer, getNextPhotoName, getPhotoBlobName, keyFromPersonId } from './Utils/util'
 
 export function replace<T>(xs: T[], updatedX: T, getId: (x: T) => object | number | string): T[] {
     const index = xs.findIndex(x => getId(x) === getId(updatedX))
@@ -110,7 +110,17 @@ class DataProvider {
             await BlobService.copyPerson(sourceUser, destUser, person)
         }
 
-        // Invalide cache for destination user
+        // Copy source user's tags to destination user (merge, don't overwrite)
+        let sourceTags = await this.getTags(sourceUser)
+        let destTags = await this.getTags(destUser)
+        let destTagIds = new Set(destTags.map(t => t.tagId))
+        let newTags = sourceTags.filter(t => !destTagIds.has(t.tagId))
+        if (newTags.length > 0) {
+            let mergedTags = [...destTags, ...newTags]
+            await BlobService.uploadTags(destUser, mergedTags)
+        }
+
+        // Invalidate cache for destination user
         Cache.InvalidateMatching(destUser.containerId)
     }
 
